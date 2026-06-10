@@ -4,6 +4,9 @@ import {
   acceptInvite,
   createInvite,
   createParticipant,
+  getTripItinerary,
+  listJournalEntries,
+  listManualPlans,
   listParticipants,
   updateParticipant,
 } from "@/lib/api/trips";
@@ -109,5 +112,19 @@ describe("trip API participants contract", () => {
       method: "POST",
     });
     expect(mockedPublicApiFetch).not.toHaveBeenCalled();
+  });
+
+  it("reads generated itinerary, manual plans, and journal entries from member-scoped trip endpoints", async () => {
+    mockedApiFetch.mockResolvedValueOnce({ days: [] });
+    mockedApiFetch.mockResolvedValueOnce([]);
+    mockedApiFetch.mockResolvedValueOnce([]);
+
+    await getTripItinerary("trip-1");
+    await listManualPlans("trip-1");
+    await listJournalEntries("trip-1");
+
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(1, "/trips/trip-1/itinerary");
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(2, "/trips/trip-1/manual-plans");
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(3, "/trips/trip-1/journal-entries");
   });
 });

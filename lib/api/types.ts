@@ -206,3 +206,122 @@ export type GroupPreferencesEntry = {
   claimedByUid?: string | null;
   preferences: MemberPreferences;
 };
+
+export type ItineraryStop = {
+  id?: string;
+  placeId?: string | null;
+  name: string;
+  address?: string | null;
+  category?: PreferenceCategory | string | null;
+  time?: string | null;
+  transport?: string | null;
+  whyItFits?: string | null;
+  suggested?: boolean;
+  source?: "manual_plan" | "participant_preference" | "ai_suggestion";
+  manualPlanId?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+};
+
+export type ItineraryBlock = {
+  timeOfDay: "morning" | "afternoon" | "evening" | string;
+  title?: string | null;
+  stops: ItineraryStop[];
+};
+
+export type ItineraryDay = {
+  date?: string | null;
+  title?: string | null;
+  blocks: ItineraryBlock[];
+};
+
+export type TripItinerary = {
+  days: ItineraryDay[];
+  manualPlanWarnings?: { manualPlanId: string; activity: string; reason: string }[];
+};
+
+export type ManualPlan = {
+  id: string;
+  category: PreferenceCategory | string;
+  activity: string;
+  timeOfDay: "morning" | "afternoon" | "evening" | string;
+  date?: string | null;
+  address?: string | null;
+  placeId?: string | null;
+  notes?: string | null;
+  createdByUid: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ManualPlanCreate = Omit<
+  ManualPlan,
+  "id" | "createdByUid" | "createdAt" | "updatedAt"
+>;
+
+export type ManualPlanUpdate = Partial<ManualPlanCreate>;
+
+export type JournalEntry = {
+  id: string;
+  tripId?: string;
+  stopId?: string | null;
+  placeId?: string | null;
+  rating?: number | null;
+  note?: string | null;
+  shared?: boolean;
+  createdAt?: string;
+};
+
+export type CategoryResult = {
+  status: "running" | "complete" | "error";
+  candidates: {
+    placeId: string;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    whyItFits: string;
+    timeOfDayFit?: string;
+    priceLevel?: string;
+    suggested: boolean;
+    travelersTip?: string;
+  }[];
+  sourceParticipantIds: string[];
+  metrics: Record<string, unknown>;
+  traceId: string;
+  updatedAt: string;
+  preferencesVersion?: string | null;
+  stale: boolean;
+  fallback?: boolean;
+  fallbackReason?: "missing" | "stale" | "agent_error" | null;
+  error?: string;
+};
+
+export type GenerationDoc = {
+  status: "running" | "complete" | "error";
+  phase: "collecting_preferences" | "researching" | "building_itinerary" | "done";
+  agentStatuses: {
+    food_drink: "pending" | "running" | "done" | "skipped_fresh" | "fallback" | "error";
+    outdoors_scenic: "pending" | "running" | "done" | "skipped_fresh" | "fallback" | "error";
+    nightlife: "pending" | "running" | "done" | "skipped_fresh" | "fallback" | "error";
+    culture_local: "pending" | "running" | "done" | "skipped_fresh" | "fallback" | "error";
+    logistics: "pending" | "running" | "done" | "skipped_fresh" | "fallback" | "error";
+    coordinator: "pending" | "running" | "done" | "error";
+  };
+  requestedBy: string;
+  startedAt: string;
+  traceId: string;
+  itinerary?: TripItinerary;
+  metrics?: {
+    totalTokens: number;
+    promptTokens: number;
+    outputTokens: number;
+    latencyMs: number;
+    estCostUsd: number;
+    llmCalls: number;
+    toolCalls: number;
+    tokensPerSecond: number;
+    billingTier: "free" | "vertex";
+  };
+  error?: string;
+};

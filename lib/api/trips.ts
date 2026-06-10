@@ -5,14 +5,19 @@ import type {
   InviteCreated,
   InvitePreview,
   Member,
+  ManualPlan,
+  ManualPlanCreate,
+  ManualPlanUpdate,
   Participant,
   ParticipantCreate,
   ParticipantUpdate,
   PreferenceCategory,
   MemberPreferences,
   GroupPreferencesEntry,
+  JournalEntry,
   Trip,
   TripCreate,
+  TripItinerary,
 } from "@/lib/api/types";
 
 export function listTrips() {
@@ -62,6 +67,50 @@ export function getPreferenceStatus(tripId: string) {
 
 export function getGroupPreferences(tripId: string) {
   return apiFetch<GroupPreferencesEntry[]>(`/trips/${tripId}/preferences`);
+}
+
+export function getTripItinerary(tripId: string) {
+  return apiFetch<TripItinerary>(`/trips/${tripId}/itinerary`);
+}
+
+export function listManualPlans(tripId: string) {
+  return apiFetch<ManualPlan[]>(`/trips/${tripId}/manual-plans`);
+}
+
+export function createManualPlan(tripId: string, payload: ManualPlanCreate) {
+  return apiFetch<ManualPlan>(`/trips/${tripId}/manual-plans`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function updateManualPlan(tripId: string, planId: string, payload: ManualPlanUpdate) {
+  return apiFetch<ManualPlan>(`/trips/${tripId}/manual-plans/${planId}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export function deleteManualPlan(tripId: string, planId: string) {
+  return apiFetch<void>(`/trips/${tripId}/manual-plans/${planId}`, {
+    method: "DELETE",
+  });
+}
+
+export function generateCategory(tripId: string, category: PreferenceCategory) {
+  return apiFetch<{ category: string }>(`/trips/${tripId}/categories/${category}/generate`, {
+    method: "POST",
+  });
+}
+
+export function generateItinerary(tripId: string) {
+  return apiFetch<{ generationId: string }>(`/trips/${tripId}/generate`, {
+    method: "POST",
+  });
+}
+
+export function listJournalEntries(tripId: string) {
+  return apiFetch<JournalEntry[]>(`/trips/${tripId}/journal-entries`);
 }
 
 export function getParticipantPreferences(tripId: string, participantId: string) {

@@ -6,12 +6,13 @@ import { useCallback, useEffect, useState } from "react";
 import {
   AlertCircle,
   CalendarDays,
-  CheckCircle2,
   MapPin,
   RotateCw,
   ShieldAlert,
 } from "lucide-react";
 import { TripTravelersSection } from "@/components/trips/trip-travelers-section";
+import { ManualPlansSection } from "@/components/trips/manual-plans-section";
+import { CategoryPanelsSection } from "@/components/trips/category-panels-section";
 import { RightNowTripCard } from "@/components/right-now/right-now-trip-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,14 +23,15 @@ import {
   getTrip,
   listMembers,
   listParticipants,
+  listManualPlans,
 } from "@/lib/api/trips";
 import { ApiError } from "@/lib/api/client";
 import type {
   CompletionEntry,
   Member,
   Participant,
-  PreferenceCategory,
   Trip,
+  ManualPlan,
 } from "@/lib/api/types";
 import { PreferencesSection } from "@/components/preferences/preferences-section";
 
@@ -43,15 +45,8 @@ type DetailState =
       members: Member[];
       participants: Participant[];
       completions: CompletionEntry[];
+      manualPlans: ManualPlan[];
     };
-
-const categories: Array<{ key: PreferenceCategory; label: string }> = [
-  { key: "food_drink", label: "Food" },
-  { key: "outdoors_scenic", label: "Outdoors" },
-  { key: "nightlife", label: "Nightlife" },
-  { key: "culture_local", label: "Culture" },
-  { key: "logistics", label: "Logistics" },
-];
 
 const statusLabel: Record<Trip["status"], string> = {
   planning: "Planning",
@@ -70,11 +65,12 @@ export default function TripDetailPage() {
       const acceptedParticipantId = window.sessionStorage.getItem(
         acceptedParticipantStorageKey(params.id),
       );
-      const [trip, members, participants, completions] = await Promise.all([
+      const [trip, members, participants, completions, manualPlans] = await Promise.all([
         getTrip(params.id),
         listMembers(params.id),
         listParticipants(params.id),
         getPreferenceStatus(params.id),
+        listManualPlans(params.id),
       ]);
       if (acceptedParticipantId) {
         window.sessionStorage.removeItem(acceptedParticipantStorageKey(params.id));
@@ -88,10 +84,11 @@ export default function TripDetailPage() {
           members,
           participants: refetchedParticipants,
           completions: refetchedCompletions,
+          manualPlans,
         });
         return;
       }
-      setState({ status: "ready", trip, members, participants, completions });
+      setState({ status: "ready", trip, members, participants, completions, manualPlans });
     } catch (error) {
       if (error instanceof ApiError && error.status === 403) {
         setState({ status: "forbidden" });
@@ -197,6 +194,18 @@ export default function TripDetailPage() {
           currentUid={user?.uid}
         />
       </section>
+
+      {state.trip.status !== "completed" && (
+        <ManualPlansSection
+          tripId={state.trip.id}
+          manualPlans={state.manualPlans}
+          isAdmin={isAdmin}
+          onManualPlansChanged={loadTrip}
+        />
+      )}
+      {state.trip.status !== "completed" && (
+        <CategoryPanelsSection tripId={state.trip.id} />
+      )}
     </div>
   );
 }

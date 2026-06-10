@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Sparkles, CheckCircle2, Circle } from "lucide-react";
 import { usePreferences } from "./use-preferences";
 import {
-  CompletionEntry,
   PreferenceCategory,
   Participant,
   Member,
@@ -184,7 +183,7 @@ export function PreferencesSection({
       {selectedParticipant && (
         <div className="rounded-lg border border-primary/20 bg-primary/5 p-5">
           <h3 className="text-lg font-semibold mb-4">
-            {selectedParticipant.displayName}'s Preferences
+            {selectedParticipant.displayName}&apos;s Preferences
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {CATEGORIES.map((category) => {

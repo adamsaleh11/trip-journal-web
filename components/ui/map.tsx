@@ -142,6 +142,8 @@ type MapProps = {
   onViewportChange?: (viewport: MapViewport) => void;
   /** Show a loading indicator on the map */
   loading?: boolean;
+  /** Called when the provider cannot initialize or emits an error. */
+  onError?: (error: Error) => void;
 } & Omit<MapLibreGL.MapOptions, "container" | "style">;
 
 function DefaultLoader() {
@@ -176,6 +178,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     viewport,
     onViewportChange,
     loading = false,
+    onError,
     ...props
   },
   ref,
@@ -220,16 +223,22 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       resolvedTheme === "dark" ? mapStyles.dark : mapStyles.light;
     currentStyleRef.current = initialStyle;
 
-    const map = new MapLibreGL.Map({
-      container: containerRef.current,
-      style: initialStyle,
-      renderWorldCopies: false,
-      attributionControl: {
-        compact: true,
-      },
-      ...props,
-      ...viewport,
-    });
+    let map: MapLibreGL.Map;
+    try {
+      map = new MapLibreGL.Map({
+        container: containerRef.current,
+        style: initialStyle,
+        renderWorldCopies: false,
+        attributionControl: {
+          compact: true,
+        },
+        ...props,
+        ...viewport,
+      });
+    } catch (error) {
+      onError?.(error instanceof Error ? error : new Error("Map provider failed to initialize."));
+      return;
+    }
 
     const styleDataHandler = () => {
       clearStyleTimeout();
@@ -244,6 +253,9 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
       }, 100);
     };
     const loadHandler = () => setIsLoaded(true);
+    const errorHandler = (event: { error?: Error }) => {
+      onError?.(event.error ?? new Error("Map provider failed to load."));
+    };
 
     // Viewport change handler - skip if triggered by internal update
     const handleMove = () => {
@@ -252,6 +264,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     };
 
     map.on("load", loadHandler);
+    map.on("error", errorHandler);
     map.on("styledata", styleDataHandler);
     map.on("move", handleMove);
     setMapInstance(map);
@@ -259,6 +272,7 @@ const Map = forwardRef<MapRef, MapProps>(function Map(
     return () => {
       clearStyleTimeout();
       map.off("load", loadHandler);
+      map.off("error", errorHandler);
       map.off("styledata", styleDataHandler);
       map.off("move", handleMove);
       map.remove();
@@ -1835,6 +1849,84 @@ function MapClusterLayer<
   return null;
 }
 
+type MapHeatLayerProps<P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties> = {
+  id?: string;
+  data: GeoJSON.FeatureCollection<GeoJSON.Point, P>;
+  weightProperty?: string;
+  beforeId?: string;
+};
+
+function MapHeatLayer<P extends GeoJSON.GeoJsonProperties = GeoJSON.GeoJsonProperties>({
+  id: propId,
+  data,
+  weightProperty = "weight",
+  beforeId,
+}: MapHeatLayerProps<P>) {
+  const { map, isLoaded } = useMap();
+  const autoId = useId();
+  const id = propId ?? autoId;
+  const sourceId = `heat-source-${id}`;
+  const layerId = `heat-layer-${id}`;
+
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+
+    map.addSource(sourceId, {
+      type: "geojson",
+      data,
+    });
+
+    map.addLayer(
+      {
+        id: layerId,
+        type: "heatmap",
+        source: sourceId,
+        maxzoom: 12,
+        paint: {
+          "heatmap-weight": ["coalesce", ["get", weightProperty], 1],
+          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.5, 8, 1.6],
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 18, 8, 42],
+          "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.85, 12, 0.35],
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0,
+            "rgba(251, 146, 60, 0)",
+            0.25,
+            "rgba(251, 146, 60, 0.35)",
+            0.55,
+            "rgba(244, 114, 94, 0.55)",
+            0.85,
+            "rgba(251, 191, 36, 0.72)",
+            1,
+            "rgba(255, 237, 213, 0.9)",
+          ],
+        },
+      },
+      beforeId,
+    );
+
+    return () => {
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch {
+        // ignore
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, map]);
+
+  useEffect(() => {
+    if (!isLoaded || !map) return;
+    const source = map.getSource(sourceId) as MapLibreGL.GeoJSONSource | undefined;
+    source?.setData(data);
+  }, [data, isLoaded, map, sourceId]);
+
+  return null;
+}
+
 export {
   Map,
   useMap,
@@ -1848,6 +1940,7 @@ export {
   MapRoute,
   MapArc,
   MapClusterLayer,
+  MapHeatLayer,
 };
 
 export type { MapRef, MapViewport, MapArcDatum, MapArcEvent };
