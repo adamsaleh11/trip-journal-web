@@ -2,8 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, BookOpen, Compass, LogOut, MapPinned, UserCircle } from "lucide-react";
+import {
+  Activity,
+  BookOpen,
+  Compass,
+  Dice5,
+  LogOut,
+  MapPinned,
+  UserCircle,
+} from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
+import { useRightNow } from "@/components/right-now/right-now-provider";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const { openRightNow } = useRightNow();
 
   async function handleSignOut() {
     await signOut();
@@ -48,6 +58,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <nav className="space-y-1" aria-label="Primary">
+          <Button
+            type="button"
+            variant="ghost"
+            className="mb-3 h-auto w-full justify-start px-3 py-2.5 text-sm font-medium text-primary hover:bg-primary/12 hover:text-primary"
+            onClick={() => openRightNow()}
+          >
+            <Dice5 className="h-4 w-4" aria-hidden="true" />
+            Right Now
+          </Button>
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -80,6 +99,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="hidden gap-1 sm:flex lg:hidden" aria-label="Primary">
+            <Button
+              type="button"
+              variant="ghost"
+              className="px-3 py-2 text-sm font-medium text-primary hover:bg-primary/12 hover:text-primary"
+              onClick={() => openRightNow()}
+            >
+              <Dice5 className="h-4 w-4" aria-hidden="true" />
+              Right Now
+            </Button>
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -132,7 +160,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </DropdownMenu>
         </div>
 
-        <nav className="mt-3 grid grid-cols-3 gap-1 sm:hidden" aria-label="Primary">
+        <nav className="mt-3 grid grid-cols-4 gap-1 sm:hidden" aria-label="Primary">
+          <Button
+            type="button"
+            variant="ghost"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-md px-2 text-sm font-medium text-primary hover:bg-primary/12 hover:text-primary"
+            onClick={() => openRightNow()}
+          >
+            <Dice5 className="h-4 w-4" aria-hidden="true" />
+            <span className="truncate">Now</span>
+          </Button>
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { FullPageLoader } from "@/components/shell/full-page-loader";
 import { useAuth } from "@/components/auth/auth-provider";
+import { RightNowProvider } from "@/components/right-now/right-now-provider";
 
 export default function ProtectedLayout({
   children,
@@ -25,5 +26,9 @@ export default function ProtectedLayout({
     return <FullPageLoader label="Opening your atlas" />;
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <RightNowProvider>
+      <AppShell>{children}</AppShell>
+    </RightNowProvider>
+  );
 }

@@ -117,3 +117,92 @@ export type InviteAccepted = {
   tripId: string;
   participantId: string;
 };
+
+export type WhimLocation =
+  | {
+      lat: number;
+      lng: number;
+    }
+  | {
+      city: string;
+    };
+
+export type WhimCreate = {
+  whimText: string;
+  location: WhimLocation;
+  tripId?: string;
+  excludePlaceIds?: string[];
+};
+
+export type WhimSuggestion = {
+  placeId: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  category: string;
+  whyThis: string;
+  openNow: boolean | "Not available";
+  mapsUri: string;
+  travelersTip?: string | null;
+};
+
+export type WhimCreated = {
+  whimId: string;
+  suggestion: WhimSuggestion;
+};
+
+export type Budget = "$" | "$$" | "$$$";
+
+export type BasePreferenceCategory = {
+  schemaVersion: 1;
+  freeText: string;
+};
+
+export type FoodDrinkPreference = BasePreferenceCategory & {
+  dietaryRestrictions: ("vegetarian" | "vegan" | "halal" | "kosher" | "gluten_free" | "none")[];
+  cuisineInterests: string[];
+  mealBudget: Budget | null;
+  drinkInterests: ("local_drinks" | "cocktails" | "coffee" | "none")[];
+  sportsBarInterest: boolean;
+};
+
+export type OutdoorsScenicPreference = BasePreferenceCategory & {
+  activityLevel: "chill" | "moderate" | "strenuous" | null;
+  interests: ("hikes" | "beaches" | "viewpoints" | "sunsets" | "water_activities" | "parks")[];
+  photoSpotsPriority: boolean;
+};
+
+export type NightlifePreference = BasePreferenceCategory & {
+  vibe: ("clubs" | "bars" | "live_music" | "street_parties" | "chill_drinks" | "none")[];
+  frequency: "none" | "once_or_twice" | "most_nights" | null;
+  budget: Budget | null;
+};
+
+export type CultureLocalPreference = BasePreferenceCategory & {
+  interests: ("markets" | "museums" | "landmarks" | "neighborhoods" | "local_events" | "side_quests")[];
+  guidedTours: "yes" | "no" | "maybe" | null;
+};
+
+export type LogisticsPreference = BasePreferenceCategory & {
+  pace: "relaxed" | "balanced" | "packed" | null;
+  wakeTime: "early" | "mid" | "late" | null;
+  transport: ("walk" | "transit" | "rideshare" | "rental_car")[];
+  dailyBudget: Budget | null;
+  mobilityNotes: string;
+};
+
+export type MemberPreferences = {
+  food_drink: FoodDrinkPreference | null;
+  outdoors_scenic: OutdoorsScenicPreference | null;
+  nightlife: NightlifePreference | null;
+  culture_local: CultureLocalPreference | null;
+  logistics: LogisticsPreference | null;
+};
+
+export type GroupPreferencesEntry = {
+  participantId: string;
+  displayName: string;
+  claimedByUid?: string | null;
+  preferences: MemberPreferences;
+};

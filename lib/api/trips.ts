@@ -8,6 +8,9 @@ import type {
   Participant,
   ParticipantCreate,
   ParticipantUpdate,
+  PreferenceCategory,
+  MemberPreferences,
+  GroupPreferencesEntry,
   Trip,
   TripCreate,
 } from "@/lib/api/types";
@@ -55,6 +58,29 @@ export function updateParticipant(
 
 export function getPreferenceStatus(tripId: string) {
   return apiFetch<CompletionEntry[]>(`/trips/${tripId}/preferences/status`);
+}
+
+export function getGroupPreferences(tripId: string) {
+  return apiFetch<GroupPreferencesEntry[]>(`/trips/${tripId}/preferences`);
+}
+
+export function getParticipantPreferences(tripId: string, participantId: string) {
+  return apiFetch<MemberPreferences>(`/trips/${tripId}/preferences/participants/${participantId}`);
+}
+
+export function updateParticipantCategoryPreference<T extends PreferenceCategory>(
+  tripId: string,
+  participantId: string,
+  category: T,
+  payload: NonNullable<MemberPreferences[T]>
+) {
+  return apiFetch<MemberPreferences>(
+    `/trips/${tripId}/preferences/participants/${participantId}/${category}`,
+    {
+      method: "PUT",
+      body: payload,
+    }
+  );
 }
 
 export function createInvite(

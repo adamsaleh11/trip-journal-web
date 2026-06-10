@@ -12,6 +12,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { TripTravelersSection } from "@/components/trips/trip-travelers-section";
+import { RightNowTripCard } from "@/components/right-now/right-now-trip-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,7 @@ import type {
   PreferenceCategory,
   Trip,
 } from "@/lib/api/types";
+import { PreferencesSection } from "@/components/preferences/preferences-section";
 
 type DetailState =
   | { status: "loading" }
@@ -173,6 +175,13 @@ export default function TripDetailPage() {
         </div>
       </section>
 
+      {state.trip.status !== "completed" ? (
+        <RightNowTripCard
+          tripId={state.trip.id}
+          destinationText={state.trip.destination.text}
+        />
+      ) : null}
+
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <TripTravelersSection
           tripId={state.trip.id}
@@ -181,57 +190,18 @@ export default function TripDetailPage() {
           onParticipantsChanged={loadTrip}
         />
 
-        <div className="rounded-lg border border-border bg-card/80 p-5">
-          <h2 className="text-xl font-semibold">Preference progress</h2>
-          <div className="mt-4 space-y-4">
-            {state.completions.map((entry) => (
-              <PreferenceRow
-                key={entry.participantId}
-                entry={entry}
-                tripId={state.trip.id}
-              />
-            ))}
-          </div>
-        </div>
+        <PreferencesSection
+          tripId={state.trip.id}
+          participants={state.participants}
+          members={state.members}
+          currentUid={user?.uid}
+        />
       </section>
     </div>
   );
 }
 
-function PreferenceRow({ entry, tripId }: { entry: CompletionEntry; tripId: string }) {
-  const completed = categories.filter((category) => entry.filled[category.key]).length;
 
-  return (
-    <div className="rounded-md border border-border bg-background/35 p-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-medium">{entry.displayName ?? "Traveler"}</p>
-        <span className="text-xs text-muted-foreground">{completed}/5 done</span>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {categories.map((category) => (
-          <Link
-            key={category.key}
-            href={`/trips/${tripId}/preferences?${new URLSearchParams({
-              category: category.key,
-              participantId: entry.participantId,
-            }).toString()}`}
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Badge
-              variant={entry.filled[category.key] ? "success" : "outline"}
-              className="gap-1"
-            >
-              {entry.filled[category.key] ? (
-                <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-              ) : null}
-              {category.label}
-            </Badge>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function TripDetailSkeleton() {
   return (
