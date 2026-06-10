@@ -13,6 +13,7 @@ import {
 import { TripTravelersSection } from "@/components/trips/trip-travelers-section";
 import { ManualPlansSection } from "@/components/trips/manual-plans-section";
 import { CategoryPanelsSection } from "@/components/trips/category-panels-section";
+import { GenerationSection } from "@/components/trips/generation-section";
 import { RightNowTripCard } from "@/components/right-now/right-now-trip-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,59 @@ export default function TripDetailPage() {
   const isAdmin = state.members.some(
     (member) => member.uid === user?.uid && member.role === "admin",
   );
+  const isGenerated =
+    state.trip.status === "generated" || state.trip.status === "completed";
+
+  const generationSection = (
+    <GenerationSection
+      tripId={state.trip.id}
+      participants={state.participants}
+      completions={state.completions}
+      manualPlans={state.manualPlans}
+    />
+  );
+
+  const planningTools = (
+    <div className="space-y-6">
+      {state.trip.status !== "completed" ? (
+        <RightNowTripCard
+          tripId={state.trip.id}
+          destinationText={state.trip.destination.text}
+        />
+      ) : null}
+
+      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <TripTravelersSection
+          tripId={state.trip.id}
+          participants={state.participants}
+          isAdmin={isAdmin}
+          onParticipantsChanged={loadTrip}
+        />
+
+        <PreferencesSection
+          tripId={state.trip.id}
+          participants={state.participants}
+          members={state.members}
+          currentUid={user?.uid}
+        />
+      </section>
+
+      {state.trip.status !== "completed" && (
+        <ManualPlansSection
+          tripId={state.trip.id}
+          manualPlans={state.manualPlans}
+          isAdmin={isAdmin}
+          onManualPlansChanged={loadTrip}
+          tripStartDate={state.trip.startDate}
+          tripEndDate={state.trip.endDate}
+        />
+      )}
+
+      {state.trip.status !== "completed" && (
+        <CategoryPanelsSection tripId={state.trip.id} />
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -172,39 +226,21 @@ export default function TripDetailPage() {
         </div>
       </section>
 
-      {state.trip.status !== "completed" ? (
-        <RightNowTripCard
-          tripId={state.trip.id}
-          destinationText={state.trip.destination.text}
-        />
-      ) : null}
-
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <TripTravelersSection
-          tripId={state.trip.id}
-          participants={state.participants}
-          isAdmin={isAdmin}
-          onParticipantsChanged={loadTrip}
-        />
-
-        <PreferencesSection
-          tripId={state.trip.id}
-          participants={state.participants}
-          members={state.members}
-          currentUid={user?.uid}
-        />
-      </section>
-
-      {state.trip.status !== "completed" && (
-        <ManualPlansSection
-          tripId={state.trip.id}
-          manualPlans={state.manualPlans}
-          isAdmin={isAdmin}
-          onManualPlansChanged={loadTrip}
-        />
-      )}
-      {state.trip.status !== "completed" && (
-        <CategoryPanelsSection tripId={state.trip.id} />
+      {isGenerated ? (
+        <>
+          {generationSection}
+          <details className="group rounded-lg border border-border bg-card/50 p-4">
+            <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground">
+              Planning details
+            </summary>
+            <div className="mt-4">{planningTools}</div>
+          </details>
+        </>
+      ) : (
+        <>
+          {planningTools}
+          {generationSection}
+        </>
       )}
     </div>
   );

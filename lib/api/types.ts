@@ -207,6 +207,11 @@ export type GroupPreferencesEntry = {
   preferences: MemberPreferences;
 };
 
+export type StopTransport = {
+  mode?: string | null;
+  durationText?: string | null;
+};
+
 export type ItineraryStop = {
   id?: string;
   placeId?: string | null;
@@ -214,7 +219,7 @@ export type ItineraryStop = {
   address?: string | null;
   category?: PreferenceCategory | string | null;
   time?: string | null;
-  transport?: string | null;
+  transport?: StopTransport | null;
   whyItFits?: string | null;
   suggested?: boolean;
   source?: "manual_plan" | "participant_preference" | "ai_suggestion";
@@ -224,7 +229,7 @@ export type ItineraryStop = {
 };
 
 export type ItineraryBlock = {
-  timeOfDay: "morning" | "afternoon" | "evening" | string;
+  name: "morning" | "afternoon" | "evening" | string;
   title?: string | null;
   stops: ItineraryStop[];
 };

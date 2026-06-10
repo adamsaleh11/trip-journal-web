@@ -15,7 +15,7 @@ import {
   CultureLocalForm,
   LogisticsForm,
 } from "./category-forms";
-import { Button } from "@/components/ui/button";
+import { summarizeCategory } from "@/lib/preferences/summary";
 
 const CATEGORIES: Array<{
   key: PreferenceCategory;
@@ -191,47 +191,68 @@ export function PreferencesSection({
                 (c) => c.participantId === selectedParticipantId
               );
               const isFilled = status?.filled[category.key];
+              const summary = summarizeCategory(
+                category.key,
+                activeGroupPrefs?.[category.key],
+              );
 
               return (
                 <div
                   key={category.key}
                   onClick={() => handleOpenForm(selectedParticipant.id, category.key)}
-                  className={`relative p-4 rounded-xl border cursor-pointer transition-colors hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring ${
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      handleOpenForm(selectedParticipant.id, category.key);
+                    }
+                  }}
+                  className={`relative flex flex-col gap-3 p-4 rounded-xl border cursor-pointer transition-colors hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring ${
                     isFilled ? "bg-card border-border" : "bg-card/50 border-dashed border-border"
                   }`}
                   tabIndex={0}
                   role="button"
+                  aria-label={`Edit ${category.label} for ${selectedParticipant.displayName}`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{category.icon}</span>
-                      <div>
-                        <p className="font-medium">{category.label}</p>
-                        {isFilled ? (
-                          <span className="text-xs text-success flex items-center gap-1 mt-1">
-                            <CheckCircle2 className="w-3 h-3" /> Filled
-                          </span>
-                        ) : (
-                          <span className="text-xs text-primary flex items-center gap-1 mt-1">
-                            <Sparkles className="w-3 h-3" /> AI will auto-fill
-                          </span>
-                        )}
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl" aria-hidden="true">
+                      {category.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium">{category.label}</p>
+                      {isFilled ? (
+                        <span className="text-xs text-emerald-300 flex items-center gap-1 mt-1">
+                          <CheckCircle2 className="w-3 h-3" aria-hidden="true" /> Filled
+                        </span>
+                      ) : (
+                        <span className="text-xs text-primary flex items-center gap-1 mt-1">
+                          <Sparkles className="w-3 h-3" aria-hidden="true" /> AI will auto-fill
+                        </span>
+                      )}
                     </div>
                   </div>
+
+                  {!summary.isEmpty && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        ...summary.chips,
+                        ...summary.wishlistTags,
+                      ].map((chip, index) => (
+                        <span
+                          key={`${chip}-${index}`}
+                          title={chip}
+                          className="inline-flex max-w-full items-center truncate rounded-full border border-border bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
         </div>
       )}
-
-      {/* Generate Button Placeholder */}
-      <div className="flex justify-end pt-4">
-        <Button disabled variant="default" size="lg">
-          Generate Itinerary (Coming Soon)
-        </Button>
-      </div>
 
       {/* Drawer Forms */}
       {activeForm === "food_drink" && selectedParticipantId && (

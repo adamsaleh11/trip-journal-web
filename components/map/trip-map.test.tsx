@@ -159,7 +159,7 @@ describe("TripMap", () => {
           title: "Day 1",
           blocks: [
             {
-              timeOfDay: "morning",
+              name: "morning",
               stops: [
                 {
                   id: "stop-1",

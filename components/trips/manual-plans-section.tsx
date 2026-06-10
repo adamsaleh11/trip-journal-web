@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ManualPlan, ManualPlanCreate } from "@/lib/api/types";
 import { createManualPlan, deleteManualPlan, updateManualPlan } from "@/lib/api/trips";
 import { useToast } from "@/components/ui/toast";
@@ -22,6 +23,8 @@ type ManualPlansSectionProps = {
   manualPlans: ManualPlan[];
   isAdmin: boolean;
   onManualPlansChanged: () => void;
+  tripStartDate: string;
+  tripEndDate: string;
 };
 
 const CATEGORIES = [
@@ -43,6 +46,8 @@ export function ManualPlansSection({
   manualPlans,
   isAdmin,
   onManualPlansChanged,
+  tripStartDate,
+  tripEndDate,
 }: ManualPlansSectionProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<ManualPlan | null>(null);
@@ -111,13 +116,18 @@ export function ManualPlansSection({
                 <h3 className="font-medium">{plan.activity}</h3>
                 <div className="mt-1 flex gap-2 text-xs text-muted-foreground">
                   <span className="capitalize border rounded px-1.5 py-0.5">
-                    {plan.category.replace("_", " ")}
+                    {String(plan.category).replaceAll("_", " ")}
                   </span>
                   <span className="capitalize border rounded px-1.5 py-0.5">
                     {plan.timeOfDay}
                   </span>
                   {plan.date && <span className="border rounded px-1.5 py-0.5">{plan.date}</span>}
                 </div>
+                {plan.address && (
+                  <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                    {plan.address}
+                  </p>
+                )}
                 {plan.notes && (
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
                     {plan.notes}
@@ -152,6 +162,8 @@ export function ManualPlansSection({
           existingPlan={editingPlan}
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
           onSuccess={() => {
             onManualPlansChanged();
             handleCloseDialog();
@@ -168,12 +180,16 @@ function ManualPlanDialog({
   open,
   onOpenChange,
   onSuccess,
+  tripStartDate,
+  tripEndDate,
 }: {
   tripId: string;
   existingPlan: ManualPlan | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  tripStartDate: string;
+  tripEndDate: string;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<ManualPlanCreate>({
@@ -187,10 +203,15 @@ function ManualPlanDialog({
   });
   const toast = useToast();
 
+  const dateOutOfRange = Boolean(
+    formData.date && (formData.date < tripStartDate || formData.date > tripEndDate),
+  );
+
   const isFormValid =
-    formData.category &&
+    Boolean(formData.category) &&
     formData.activity.trim().length > 0 &&
-    formData.timeOfDay;
+    Boolean(formData.timeOfDay) &&
+    !dateOutOfRange;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,29 +285,39 @@ function ManualPlanDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="timeOfDay">Time of Day *</Label>
-              <select
-                id="timeOfDay"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              <Label>Time of Day *</Label>
+              <ToggleGroup
+                type="single"
                 value={formData.timeOfDay}
-                onChange={(event) => setFormData({ ...formData, timeOfDay: event.target.value })}
+                onValueChange={(value) => {
+                  if (value) setFormData({ ...formData, timeOfDay: value });
+                }}
+                className="justify-start"
+                aria-label="Time of day"
               >
-                <option value="">Select time of day</option>
                 {TIMES_OF_DAY.map((time) => (
-                  <option key={time.value} value={time.value}>
+                  <ToggleGroupItem key={time.value} value={time.value} className="flex-1">
                     {time.label}
-                  </option>
+                  </ToggleGroupItem>
                 ))}
-              </select>
+              </ToggleGroup>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="date">Date (Optional)</Label>
               <Input
                 id="date"
                 type="date"
+                min={tripStartDate}
+                max={tripEndDate}
                 value={formData.date || ""}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                aria-invalid={dateOutOfRange}
               />
+              {dateOutOfRange && (
+                <p className="text-xs text-destructive">
+                  Pick a date within the trip ({tripStartDate} to {tripEndDate}).
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
