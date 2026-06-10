@@ -7,27 +7,41 @@ import {
   AlertCircle,
   CalendarDays,
   CheckCircle2,
-  Crown,
-  Mail,
   MapPin,
   RotateCw,
   ShieldAlert,
 } from "lucide-react";
-import { InviteDialog } from "@/components/trips/invite-dialog";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { TripTravelersSection } from "@/components/trips/trip-travelers-section";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/auth/auth-provider";
-import { getPreferenceStatus, getTrip, listMembers } from "@/lib/api/trips";
+import {
+  getPreferenceStatus,
+  getTrip,
+  listMembers,
+  listParticipants,
+} from "@/lib/api/trips";
 import { ApiError } from "@/lib/api/client";
-import type { CompletionEntry, Member, PreferenceCategory, Trip } from "@/lib/api/types";
+import type {
+  CompletionEntry,
+  Member,
+  Participant,
+  PreferenceCategory,
+  Trip,
+} from "@/lib/api/types";
 
 type DetailState =
   | { status: "loading" }
   | { status: "forbidden" }
   | { status: "error"; message: string }
-  | { status: "ready"; trip: Trip; members: Member[]; completions: CompletionEntry[] };
+  | {
+      status: "ready";
+      trip: Trip;
+      members: Member[];
+      participants: Participant[];
+      completions: CompletionEntry[];
+    };
 
 const categories: Array<{ key: PreferenceCategory; label: string }> = [
   { key: "food_drink", label: "Food" },
@@ -51,12 +65,31 @@ export default function TripDetailPage() {
   const loadTrip = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const [trip, members, completions] = await Promise.all([
+      const acceptedParticipantId = window.sessionStorage.getItem(
+        acceptedParticipantStorageKey(params.id),
+      );
+      const [trip, members, participants, completions] = await Promise.all([
         getTrip(params.id),
         listMembers(params.id),
+        listParticipants(params.id),
         getPreferenceStatus(params.id),
       ]);
-      setState({ status: "ready", trip, members, completions });
+      if (acceptedParticipantId) {
+        window.sessionStorage.removeItem(acceptedParticipantStorageKey(params.id));
+        const [refetchedParticipants, refetchedCompletions] = await Promise.all([
+          listParticipants(params.id),
+          getPreferenceStatus(params.id),
+        ]);
+        setState({
+          status: "ready",
+          trip,
+          members,
+          participants: refetchedParticipants,
+          completions: refetchedCompletions,
+        });
+        return;
+      }
+      setState({ status: "ready", trip, members, participants, completions });
     } catch (error) {
       if (error instanceof ApiError && error.status === 403) {
         setState({ status: "forbidden" });
@@ -137,49 +170,26 @@ export default function TripDetailPage() {
               </p>
             ) : null}
           </div>
-          {isAdmin ? (
-            <InviteDialog
-              tripId={state.trip.id}
-              trigger={
-                <Button>
-                  <Mail className="h-4 w-4" aria-hidden="true" />
-                  Invite
-                </Button>
-              }
-            />
-          ) : null}
         </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-lg border border-border bg-card/80 p-5">
-          <h2 className="text-xl font-semibold">Members</h2>
-          <div className="mt-4 space-y-3">
-            {state.members.map((member) => (
-              <div key={member.uid} className="flex items-center gap-3 rounded-md bg-muted/45 p-3">
-                <Avatar>
-                  <AvatarFallback>{initials(member.displayName)}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{member.displayName ?? "Traveler"}</p>
-                  <p className="text-xs text-muted-foreground">Joined {formatDate(member.joinedAt.slice(0, 10))}</p>
-                </div>
-                {member.role === "admin" ? (
-                  <Badge variant="outline" className="gap-1">
-                    <Crown className="h-3 w-3" aria-hidden="true" />
-                    Admin
-                  </Badge>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
+        <TripTravelersSection
+          tripId={state.trip.id}
+          participants={state.participants}
+          isAdmin={isAdmin}
+          onParticipantsChanged={loadTrip}
+        />
 
         <div className="rounded-lg border border-border bg-card/80 p-5">
           <h2 className="text-xl font-semibold">Preference progress</h2>
           <div className="mt-4 space-y-4">
             {state.completions.map((entry) => (
-              <PreferenceRow key={entry.uid} entry={entry} tripId={state.trip.id} />
+              <PreferenceRow
+                key={entry.participantId}
+                entry={entry}
+                tripId={state.trip.id}
+              />
             ))}
           </div>
         </div>
@@ -201,7 +211,10 @@ function PreferenceRow({ entry, tripId }: { entry: CompletionEntry; tripId: stri
         {categories.map((category) => (
           <Link
             key={category.key}
-            href={`/trips/${tripId}/preferences?category=${category.key}`}
+            href={`/trips/${tripId}/preferences?${new URLSearchParams({
+              category: category.key,
+              participantId: entry.participantId,
+            }).toString()}`}
             className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Badge
@@ -236,16 +249,6 @@ function TripDetailSkeleton() {
   );
 }
 
-function initials(name: string | null | undefined) {
-  if (!name) return "T";
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
 function formatDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
   return new Intl.DateTimeFormat("en", {
@@ -253,4 +256,8 @@ function formatDate(value: string) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(year, month - 1, day));
+}
+
+function acceptedParticipantStorageKey(tripId: string) {
+  return `trip-journal-accepted-participant:${tripId}`;
 }

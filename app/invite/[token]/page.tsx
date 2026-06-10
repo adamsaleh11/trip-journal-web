@@ -56,6 +56,12 @@ export default function InvitePage() {
     try {
       const accepted = await acceptInvite(params.token);
       window.sessionStorage.removeItem("trip-journal-pending-invite");
+      if (accepted.participantId) {
+        window.sessionStorage.setItem(
+          `trip-journal-accepted-participant:${accepted.tripId}`,
+          accepted.participantId,
+        );
+      }
       toast({ kind: "success", title: "Joined trip" });
       router.replace(`/trips/${accepted.tripId}`);
     } catch (error) {

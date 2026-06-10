@@ -15,9 +15,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
+import { ApiError } from "@/lib/api/client";
+import { searchDestinations, type DestinationSuggestion } from "@/lib/api/places";
 import { createTrip } from "@/lib/api/trips";
 import type { Destination } from "@/lib/api/types";
-import { searchDestinations, type DestinationSuggestion } from "@/lib/mapbox";
 
 export function CreateTripDialog({ trigger }: { trigger: ReactNode }) {
   const router = useRouter();
@@ -59,7 +60,13 @@ export function CreateTripDialog({ trigger }: { trigger: ReactNode }) {
         setSuggestions(await searchDestinations(destinationQuery, controller.signal));
       } catch (error) {
         if (!controller.signal.aborted) {
-          setSearchError(error instanceof Error ? error.message : "Search failed.");
+          setSearchError(
+            error instanceof ApiError && error.status === 503
+              ? "Google Places is not configured on the backend."
+              : error instanceof Error
+                ? error.message
+                : "Search failed.",
+          );
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -169,11 +176,6 @@ export function CreateTripDialog({ trigger }: { trigger: ReactNode }) {
             ) : null}
             {searchError ? (
               <p className="text-sm text-destructive-foreground">{searchError}</p>
-            ) : null}
-            {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN ? (
-              <p className="text-sm text-muted-foreground">
-                Set NEXT_PUBLIC_MAPBOX_TOKEN to enable destination search.
-              </p>
             ) : null}
             {suggestions.length > 0 && !selectedDestination ? (
               <div className="overflow-hidden rounded-md border border-border">

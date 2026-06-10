@@ -71,6 +71,22 @@ export type Member = {
   joinedAt: string;
 };
 
+export type Participant = {
+  id: string;
+  displayName: string;
+  email?: string | null;
+  notes?: string | null;
+  claimedByUid?: string | null;
+};
+
+export type ParticipantCreate = {
+  displayName: string;
+  email?: string | null;
+  notes?: string | null;
+};
+
+export type ParticipantUpdate = Partial<ParticipantCreate>;
+
 export type PreferenceCategory =
   | "food_drink"
   | "outdoors_scenic"
@@ -79,8 +95,9 @@ export type PreferenceCategory =
   | "logistics";
 
 export type CompletionEntry = {
-  uid: string;
+  participantId: string;
   displayName?: string | null;
+  claimedByUid?: string | null;
   filled: Record<PreferenceCategory, boolean>;
 };
 
@@ -98,4 +115,5 @@ export type InvitePreview = {
 
 export type InviteAccepted = {
   tripId: string;
+  participantId: string;
 };

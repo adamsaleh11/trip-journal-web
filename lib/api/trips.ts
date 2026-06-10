@@ -5,6 +5,9 @@ import type {
   InviteCreated,
   InvitePreview,
   Member,
+  Participant,
+  ParticipantCreate,
+  ParticipantUpdate,
   Trip,
   TripCreate,
 } from "@/lib/api/types";
@@ -28,14 +31,39 @@ export function listMembers(tripId: string) {
   return apiFetch<Member[]>(`/trips/${tripId}/members`);
 }
 
+export function listParticipants(tripId: string) {
+  return apiFetch<Participant[]>(`/trips/${tripId}/participants`);
+}
+
+export function createParticipant(tripId: string, payload: ParticipantCreate) {
+  return apiFetch<Participant>(`/trips/${tripId}/participants`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function updateParticipant(
+  tripId: string,
+  participantId: string,
+  payload: ParticipantUpdate,
+) {
+  return apiFetch<Participant>(`/trips/${tripId}/participants/${participantId}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
 export function getPreferenceStatus(tripId: string) {
   return apiFetch<CompletionEntry[]>(`/trips/${tripId}/preferences/status`);
 }
 
-export function createInvite(tripId: string, email: string) {
+export function createInvite(
+  tripId: string,
+  payload: { email: string; participantId?: string },
+) {
   return apiFetch<InviteCreated>(`/trips/${tripId}/invites`, {
     method: "POST",
-    body: { email },
+    body: payload,
   });
 }
 

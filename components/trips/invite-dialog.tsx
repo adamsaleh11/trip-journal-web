@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, ReactNode, useState } from "react";
-import { Check, Copy, Loader2, Mail } from "lucide-react";
+import { FormEvent, ReactNode, useEffect, useState } from "react";
+import { Check, Copy, Loader2, Mail, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { createInvite } from "@/lib/api/trips";
+import type { Participant } from "@/lib/api/types";
 
 type PendingInvite = {
   email: string;
@@ -25,17 +26,40 @@ type PendingInvite = {
 
 export function InviteDialog({
   tripId,
+  participants = [],
+  initialParticipantId = null,
   trigger,
+  onInviteCreated,
 }: {
   tripId: string;
+  participants?: Participant[];
+  initialParticipantId?: string | null;
   trigger: ReactNode;
+  onInviteCreated?: () => void;
 }) {
   const toast = useToast();
   const [email, setEmail] = useState("");
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(
+    initialParticipantId,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdInvite, setCreatedInvite] = useState<PendingInvite | null>(null);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const selectedParticipant = participants.find(
+    (participant) => participant.id === selectedParticipantId,
+  );
+  const unclaimedParticipants = participants.filter(
+    (participant) => !participant.claimedByUid,
+  );
+
+  useEffect(() => {
+    setSelectedParticipantId(initialParticipantId);
+    const initialParticipant = participants.find(
+      (participant) => participant.id === initialParticipantId,
+    );
+    setEmail(initialParticipant?.email ?? "");
+  }, [initialParticipantId, participants]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,11 +67,16 @@ export function InviteDialog({
     setError(null);
 
     try {
-      const invite = await createInvite(tripId, email);
+      const invite = await createInvite(tripId, {
+        email,
+        ...(selectedParticipantId ? { participantId: selectedParticipantId } : {}),
+      });
       const pendingInvite = { email, ...invite };
       setCreatedInvite(pendingInvite);
       setPendingInvites((current) => [pendingInvite, ...current]);
       setEmail("");
+      setSelectedParticipantId(null);
+      onInviteCreated?.();
       toast({
         kind: invite.emailSent ? "success" : "info",
         title: invite.emailSent ? `Email sent to ${pendingInvite.email}` : "Invite link ready",
@@ -70,13 +99,49 @@ export function InviteDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Invite a friend</DialogTitle>
+          <DialogTitle>Invite Traveler</DialogTitle>
           <DialogDescription>
             Send by email and keep the copyable link as a fallback.
           </DialogDescription>
         </DialogHeader>
 
         <form className="space-y-3" onSubmit={handleSubmit}>
+          {unclaimedParticipants.length > 0 ? (
+            <div className="space-y-2">
+              <Label>Existing traveler</Label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {unclaimedParticipants.map((participant) => {
+                  const selected = participant.id === selectedParticipantId;
+                  return (
+                    <Button
+                      key={participant.id}
+                      type="button"
+                      aria-label={participant.displayName}
+                      variant={selected ? "secondary" : "outline"}
+                      className="h-auto justify-start whitespace-normal px-3 py-2 text-left"
+                      onClick={() => {
+                        setSelectedParticipantId(participant.id);
+                        setEmail(participant.email ?? "");
+                      }}
+                    >
+                      <UserPlus className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span className="min-w-0">
+                        <span className="block truncate">{participant.displayName}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {participant.email ?? "Needs email"}
+                        </span>
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+              {selectedParticipant ? (
+                <p className="text-xs text-muted-foreground">
+                  Invite will claim {selectedParticipant.displayName}&apos;s traveler row.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="invite-email">Email</Label>
             <Input

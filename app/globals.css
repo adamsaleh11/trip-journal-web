@@ -41,4 +41,24 @@
       radial-gradient(circle at 10% 10%, hsl(18 86% 62% / 0.12), transparent 30rem),
       linear-gradient(140deg, hsl(224 31% 7%), hsl(218 31% 10%) 46%, hsl(222 27% 8%));
   }
+
+  .trip-map-marker {
+    display: grid;
+    height: 34px;
+    width: 34px;
+    place-items: center;
+    border: 2px solid hsl(var(--background));
+    border-radius: 9999px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 0 0 8px hsl(var(--primary) / 0.16), 0 18px 34px hsl(0 0% 0% / 0.35);
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .maplibregl-popup-content {
+    @apply bg-transparent! shadow-none! p-0! rounded-none!;
+  }
+  .maplibregl-popup-tip {
+    @apply hidden!;
+  }
 }

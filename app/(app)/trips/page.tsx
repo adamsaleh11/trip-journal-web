@@ -15,13 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CreateTripDialog } from "@/components/trips/create-trip-dialog";
-import { listMembers, listTrips } from "@/lib/api/trips";
-import type { Member, Trip } from "@/lib/api/types";
+import { listParticipants, listTrips } from "@/lib/api/trips";
+import type { Participant, Trip } from "@/lib/api/types";
 
 type TripsState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; trips: Trip[]; membersByTrip: Record<string, Member[]> };
+  | { status: "ready"; trips: Trip[]; participantsByTrip: Record<string, Participant[]> };
 
 const statusLabel: Record<Trip["status"], string> = {
   planning: "Planning",
@@ -37,13 +37,13 @@ export default function TripsPage() {
 
     try {
       const trips = await listTrips();
-      const membersEntries = await Promise.all(
-        trips.map(async (trip) => [trip.id, await listMembers(trip.id)] as const),
+      const participantEntries = await Promise.all(
+        trips.map(async (trip) => [trip.id, await listParticipants(trip.id)] as const),
       );
       setState({
         status: "ready",
         trips,
-        membersByTrip: Object.fromEntries(membersEntries),
+        participantsByTrip: Object.fromEntries(participantEntries),
       });
     } catch (error) {
       setState({
@@ -118,7 +118,7 @@ export default function TripsPage() {
             <TripCard
               key={trip.id}
               trip={trip}
-              members={state.membersByTrip[trip.id] ?? []}
+              participants={state.participantsByTrip[trip.id] ?? []}
             />
           ))}
         </div>
@@ -145,7 +145,7 @@ function TripsSkeleton() {
   );
 }
 
-function TripCard({ trip, members }: { trip: Trip; members: Member[] }) {
+function TripCard({ trip, participants }: { trip: Trip; participants: Participant[] }) {
   const dateRange = useMemo(
     () => `${formatDate(trip.startDate)} - ${formatDate(trip.endDate)}`,
     [trip.endDate, trip.startDate],
@@ -160,7 +160,7 @@ function TripCard({ trip, members }: { trip: Trip; members: Member[] }) {
         <Badge variant={trip.status === "completed" ? "success" : "secondary"}>
           {statusLabel[trip.status]}
         </Badge>
-        <span className="text-xs text-muted-foreground">{members.length} travelers</span>
+        <span className="text-xs text-muted-foreground">{participants.length} travelers</span>
       </div>
       <div className="mt-7 flex-1">
         <h2 className="font-serif text-3xl font-semibold leading-tight group-hover:text-primary">
@@ -176,24 +176,24 @@ function TripCard({ trip, members }: { trip: Trip; members: Member[] }) {
         </p>
       </div>
       <div className="mt-6 flex items-center justify-between gap-3">
-        <StackedMembers members={members} />
+        <StackedParticipants participants={participants} />
         <span className="text-sm font-medium text-primary">Open</span>
       </div>
     </Link>
   );
 }
 
-function StackedMembers({ members }: { members: Member[] }) {
+function StackedParticipants({ participants }: { participants: Participant[] }) {
   return (
     <div className="flex -space-x-2">
-      {members.slice(0, 4).map((member) => (
-        <Avatar key={member.uid} className="h-9 w-9 ring-2 ring-card">
-          <AvatarFallback>{initials(member.displayName)}</AvatarFallback>
+      {participants.slice(0, 4).map((participant) => (
+        <Avatar key={participant.id} className="h-9 w-9 ring-2 ring-card">
+          <AvatarFallback>{initials(participant.displayName)}</AvatarFallback>
         </Avatar>
       ))}
-      {members.length > 4 ? (
+      {participants.length > 4 ? (
         <div className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-muted text-xs ring-2 ring-card">
-          +{members.length - 4}
+          +{participants.length - 4}
         </div>
       ) : null}
     </div>
