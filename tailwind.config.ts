@@ -9,6 +9,11 @@ const config: Config = {
     "./lib/**/*.{ts,tsx}",
   ],
   theme: {
+    fontFamily: {
+      sans: ["SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", "monospace"],
+      serif: ["SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", "monospace"],
+      mono: ["SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", "monospace"],
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",

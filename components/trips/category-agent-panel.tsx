@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Clock, Lock, Play, RefreshCw, Wand2 } from "lucide-react";
+import { AlertCircle, ChevronDown, Clock, Lock, Play, RefreshCw, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CategoryResult, PreferenceCategory } from "@/lib/api/types";
@@ -26,6 +26,7 @@ export function CategoryAgentPanel({
 }: CategoryAgentPanelProps) {
   const { result, error: listenError, goLive } = useCategoryResult(tripId, category);
   const [isStarting, setIsStarting] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [runError, setRunError] = useState<string | null>(null);
   const toast = useToast();
 
@@ -54,10 +55,10 @@ export function CategoryAgentPanel({
   const error = runError ?? listenError ?? (result?.status === "error" ? result.error : null);
 
   return (
-    <div className="rounded-md border border-border p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
+    <div className="min-w-0 rounded-md border border-border p-4">
+      <div className={`flex items-start justify-between gap-3 ${expanded ? "mb-3" : ""}`}>
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold">{label}</h3>
+          <h3 className="break-words text-base font-semibold">{label}</h3>
           {result?.stale && (
             <p className="mt-1 flex items-center gap-1 text-xs text-amber-300">
               <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
@@ -82,23 +83,36 @@ export function CategoryAgentPanel({
             {isRunning ? "Running…" : hasRun ? "Re-run agent" : "Run agent"}
           </Button>
         </AdminLockTooltip>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 flex-shrink-0 p-0"
+          aria-expanded={expanded}
+          aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+          onClick={() => setExpanded((open) => !open)}
+        >
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+        </Button>
       </div>
 
-      {error && (
+      {expanded && error && (
         <p className="mb-3 text-sm text-destructive">{error}</p>
       )}
 
-      {!hasRun && !isRunning && !error && (
+      {expanded && !hasRun && !isRunning && !error && (
         <p className="text-sm text-muted-foreground">Not run yet.</p>
       )}
 
-      {result && result.candidates.length > 0 && (
+      {expanded && result && result.candidates.length > 0 && (
         <>
           <ul className="space-y-3">
             {result.candidates.map((candidate, index) => (
               <li
                 key={candidate.placeId || `${candidate.name}-${index}`}
-                className="rounded-md bg-muted/50 p-3 text-sm"
+                className="min-w-0 rounded-md bg-muted/50 p-3 text-sm"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -134,10 +148,10 @@ export function CategoryAgentPanel({
                 </div>
 
                 {candidate.whyItFits && (
-                  <p className="mt-2 text-muted-foreground">{candidate.whyItFits}</p>
+                  <p className="mt-2 break-words text-muted-foreground">{candidate.whyItFits}</p>
                 )}
                 {candidate.travelersTip && (
-                  <p className="mt-2 rounded-sm bg-primary/10 px-2 py-1.5 text-xs italic text-primary">
+                  <p className="mt-2 break-words rounded-sm bg-primary/10 px-2 py-1.5 text-xs italic text-primary">
                     Tip: {candidate.travelersTip}
                   </p>
                 )}
@@ -148,7 +162,7 @@ export function CategoryAgentPanel({
         </>
       )}
 
-      {result && result.status === "complete" && result.candidates.length === 0 && (
+      {expanded && result && result.status === "complete" && result.candidates.length === 0 && (
         <p className="text-sm text-muted-foreground">
           No recommendations yet — try adjusting preferences and re-running.
         </p>

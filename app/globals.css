@@ -11,19 +11,19 @@
     --card-foreground: 38 34% 92%;
     --popover: 224 26% 10%;
     --popover-foreground: 38 34% 92%;
-    --primary: 18 86% 62%;
+    --primary: 152 42% 48%;
     --primary-foreground: 220 28% 8%;
     --secondary: 214 24% 18%;
     --secondary-foreground: 38 34% 92%;
     --muted: 218 22% 16%;
     --muted-foreground: 36 12% 67%;
-    --accent: 39 93% 58%;
+    --accent: 203 62% 56%;
     --accent-foreground: 220 28% 8%;
     --destructive: 0 72% 52%;
     --destructive-foreground: 38 34% 92%;
     --border: 217 19% 21%;
     --input: 217 19% 21%;
-    --ring: 18 86% 62%;
+    --ring: 152 42% 48%;
     --radius: 0.5rem;
   }
 
@@ -38,7 +38,7 @@
   body {
     @apply min-h-screen bg-background text-foreground antialiased;
     background:
-      radial-gradient(circle at 10% 10%, hsl(18 86% 62% / 0.12), transparent 30rem),
+      radial-gradient(circle at 10% 10%, hsl(152 42% 48% / 0.12), transparent 30rem),
       linear-gradient(140deg, hsl(224 31% 7%), hsl(218 31% 10%) 46%, hsl(222 27% 8%));
   }
 

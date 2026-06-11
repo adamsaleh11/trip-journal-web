@@ -94,7 +94,7 @@ export function ItineraryView({
           </p>
           <ul className="mt-2 space-y-1 text-sm text-amber-200/90">
             {warnings.map((warning) => (
-              <li key={warning.manualPlanId}>
+              <li key={warning.manualPlanId} className="break-words">
                 <span className="font-medium">{warning.activity}</span> — {warning.reason}
               </li>
             ))}
@@ -196,7 +196,7 @@ function StopCard({ stop }: { stop: ItineraryStop }) {
       </div>
 
       {stop.whyItFits && (
-        <p className="mt-2 text-sm text-muted-foreground">{stop.whyItFits}</p>
+        <p className="mt-2 break-words text-sm text-muted-foreground">{stop.whyItFits}</p>
       )}
     </li>
   );

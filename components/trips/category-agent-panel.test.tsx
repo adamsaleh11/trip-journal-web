@@ -139,6 +139,35 @@ describe("CategoryAgentPanel", () => {
     expect(generateCategory).not.toHaveBeenCalled();
   });
 
+  it("collapses and re-expands the panel content via the toggle button", async () => {
+    mockResult(completeResult);
+    renderPanel();
+
+    const toggle = screen.getByRole("button", { name: "Collapse Food & Drink" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Time Out Market")).toBeInTheDocument();
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveAccessibleName("Expand Food & Drink");
+    expect(screen.queryByText("Time Out Market")).not.toBeInTheDocument();
+
+    await userEvent.click(toggle);
+    expect(screen.getByText("Time Out Market")).toBeInTheDocument();
+  });
+
+  it("keeps the run button usable while collapsed", async () => {
+    mockResult(null);
+    vi.mocked(generateCategory).mockResolvedValue({ category: "food_drink" });
+    renderPanel();
+
+    await userEvent.click(screen.getByRole("button", { name: "Collapse Food & Drink" }));
+    expect(screen.queryByText("Not run yet.")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Run agent/ }));
+    expect(generateCategory).toHaveBeenCalledWith("trip-1", "food_drink");
+  });
+
   it("treats a 409 as already-running, not an error", async () => {
     mockResult(null);
     vi.mocked(generateCategory).mockRejectedValue(
