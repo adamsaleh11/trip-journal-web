@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { GenerationSection } from "./generation-section";
 import { ToastProvider } from "@/components/ui/toast";
-import { generateItinerary } from "@/lib/api/trips";
+import { generateItinerary, getGenerationQuota } from "@/lib/api/trips";
 import { ApiError } from "@/lib/api/client";
 import { useGenerationDoc } from "./use-generation-doc";
 import { fetchCategoryFreshness, fetchLatestGenerationId } from "./generation-data";
@@ -14,7 +14,10 @@ import {
 import type { CompletionEntry, Participant } from "@/lib/api/types";
 
 vi.mock("@/lib/firebase", () => ({ db: {}, auth: {} }));
-vi.mock("@/lib/api/trips", () => ({ generateItinerary: vi.fn() }));
+vi.mock("@/lib/api/trips", () => ({
+  generateItinerary: vi.fn(),
+  getGenerationQuota: vi.fn(),
+}));
 vi.mock("./use-generation-doc", () => ({ useGenerationDoc: vi.fn() }));
 vi.mock("./generation-data", () => ({
   fetchLatestGenerationId: vi.fn(),
@@ -53,7 +56,7 @@ const completions: CompletionEntry[] = [
   },
 ];
 
-function renderSection() {
+function renderSection(isAdmin = true) {
   return render(
     <ToastProvider>
       <GenerationSection
@@ -61,6 +64,7 @@ function renderSection() {
         participants={participants}
         completions={completions}
         manualPlans={[]}
+        isAdmin={isAdmin}
       />
     </ToastProvider>,
   );
@@ -68,6 +72,7 @@ function renderSection() {
 
 beforeEach(() => {
   vi.mocked(generateItinerary).mockReset();
+  vi.mocked(getGenerationQuota).mockResolvedValue({ cap: 3, usedToday: 0, remaining: 3 });
   vi.mocked(fetchCategoryFreshness).mockResolvedValue({});
   vi.mocked(useGenerationDoc).mockReturnValue({ doc: null, error: null, isStale: false });
 });
@@ -88,7 +93,37 @@ describe("GenerationSection", () => {
     expect(screen.getByText(/AI will fill:/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Generate itinerary" }));
-    await waitFor(() => expect(generateItinerary).toHaveBeenCalledWith("trip-1"));
+    await waitFor(() => expect(generateItinerary).toHaveBeenCalledWith("trip-1", "groq"));
+  });
+
+  it("shows how many generations remain today", async () => {
+    vi.mocked(fetchLatestGenerationId).mockResolvedValue(null);
+    vi.mocked(getGenerationQuota).mockResolvedValue({ cap: 3, usedToday: 1, remaining: 2 });
+    renderSection();
+
+    expect(await screen.findByText("2 of 3 generations left today")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Generate Itinerary/ })).toBeEnabled();
+  });
+
+  it("disables generation when the daily cap is exhausted", async () => {
+    vi.mocked(fetchLatestGenerationId).mockResolvedValue(null);
+    vi.mocked(getGenerationQuota).mockResolvedValue({ cap: 3, usedToday: 3, remaining: 0 });
+    renderSection();
+
+    expect(
+      await screen.findByText(/Daily limit reached \(3 per day\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Generate Itinerary/ })).toBeDisabled();
+  });
+
+  it("locks the generate button for non-admins", async () => {
+    vi.mocked(fetchLatestGenerationId).mockResolvedValue(null);
+    renderSection(false);
+
+    expect(
+      await screen.findByRole("button", { name: /Generate Itinerary/ }),
+    ).toBeDisabled();
+    expect(generateItinerary).not.toHaveBeenCalled();
   });
 
   it("attaches to the in-flight run on a 409", async () => {

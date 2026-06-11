@@ -11,7 +11,13 @@ const CATEGORIES: Array<{ key: PreferenceCategory; label: string }> = [
   { key: "logistics", label: "Logistics" },
 ];
 
-export function CategoryPanelsSection({ tripId }: { tripId: string }) {
+export function CategoryPanelsSection({
+  tripId,
+  isAdmin = false,
+}: {
+  tripId: string;
+  isAdmin?: boolean;
+}) {
   return (
     <section className="rounded-lg border border-border bg-card/80 p-5 sm:p-6 mt-6">
       <div className="mb-4">
@@ -28,6 +34,7 @@ export function CategoryPanelsSection({ tripId }: { tripId: string }) {
             tripId={tripId}
             category={cat.key}
             label={cat.label}
+            isAdmin={isAdmin}
           />
         ))}
       </div>

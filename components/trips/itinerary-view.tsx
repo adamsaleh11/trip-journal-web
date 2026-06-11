@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   AlertTriangle,
   Landmark,
+  Lock,
   MapPin,
   Martini,
   Mountain,
@@ -30,6 +31,7 @@ import type {
   StopTransport,
   TripItinerary,
 } from "@/lib/api/types";
+import { AdminLockTooltip } from "./admin-lock-tooltip";
 
 const CATEGORY_ICON: Record<string, LucideIcon> = {
   food_drink: UtensilsCrossed,
@@ -65,11 +67,22 @@ export function ItineraryView({
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <h2 className="font-serif text-3xl font-semibold">Your itinerary</h2>
-        {canRegenerate && onRegenerate && (
-          <Button variant="outline" size="sm" onClick={() => setConfirmOpen(true)}>
-            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-            Regenerate
-          </Button>
+        {onRegenerate && (
+          <AdminLockTooltip locked={!canRegenerate}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!canRegenerate}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {canRegenerate ? (
+                <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" aria-hidden="true" />
+              )}
+              Regenerate
+            </Button>
+          </AdminLockTooltip>
         )}
       </div>
 

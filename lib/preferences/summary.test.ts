@@ -21,7 +21,7 @@ describe("summarizeCategory", () => {
       freeText: "  loves tapas  ",
       dietaryRestrictions: ["vegetarian", "none"],
       cuisineInterests: ["Portuguese", "  "],
-      mealBudget: "$$",
+      mealBudget: { amount: 75, currency: "USD" },
       drinkInterests: ["coffee", "none"],
       sportsBarInterest: true,
     };
@@ -32,7 +32,7 @@ describe("summarizeCategory", () => {
       "Vegetarian",
       "Portuguese",
       "Coffee",
-      "Meals $$",
+      "Meals ~$75 USD",
       "Sports bars",
     ]);
     expect(summary.freeText).toBe("loves tapas");

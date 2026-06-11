@@ -1,7 +1,13 @@
 import type {
+  Budget,
   MemberPreferences,
   PreferenceCategory,
 } from "@/lib/api/types";
+
+export function formatBudget(budget: Budget): string {
+  const symbol = budget.currency === "CAD" ? "C$" : "$";
+  return `~${symbol}${budget.amount} ${budget.currency}`;
+}
 
 export type PreferenceSummary = {
   /** Short human-readable chips for the filled, meaningful fields. */
@@ -110,7 +116,7 @@ export function summarizeCategory<T extends PreferenceCategory>(
           .filter(Boolean)
           .forEach((c) => chips.push(c));
         meaningful(p.drinkInterests).forEach((v) => chips.push(label(v)));
-        if (p.mealBudget) chips.push(`Meals ${p.mealBudget}`);
+        if (p.mealBudget) chips.push(`Meals ${formatBudget(p.mealBudget)}`);
         if (p.sportsBarInterest) chips.push("Sports bars");
         break;
       }
@@ -125,7 +131,7 @@ export function summarizeCategory<T extends PreferenceCategory>(
         const p = prefs as NonNullable<MemberPreferences["nightlife"]>;
         meaningful(p.vibe).forEach((v) => chips.push(label(v)));
         if (p.frequency && p.frequency !== "none") chips.push(label(p.frequency));
-        if (p.budget) chips.push(`Budget ${p.budget}`);
+        if (p.budget) chips.push(`Budget ${formatBudget(p.budget)}`);
         break;
       }
       case "culture_local": {
@@ -139,7 +145,7 @@ export function summarizeCategory<T extends PreferenceCategory>(
         if (p.pace) chips.push(label(p.pace));
         if (p.wakeTime) chips.push(label(p.wakeTime));
         meaningful(p.transport).forEach((v) => chips.push(label(v)));
-        if (p.dailyBudget) chips.push(`Daily ${p.dailyBudget}`);
+        if (p.dailyBudget) chips.push(`Daily ${formatBudget(p.dailyBudget)}`);
         if (p.mobilityNotes.trim()) chips.push("Mobility notes");
         break;
       }

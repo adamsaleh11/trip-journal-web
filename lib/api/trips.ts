@@ -12,9 +12,12 @@ import type {
   ParticipantCreate,
   ParticipantUpdate,
   PreferenceCategory,
+  GenerationQuota,
   MemberPreferences,
+  ModelProvider,
   GroupPreferencesEntry,
   JournalEntry,
+  JournalContributionUpdate,
   Trip,
   TripCreate,
   TripItinerary,
@@ -103,14 +106,45 @@ export function generateCategory(tripId: string, category: PreferenceCategory) {
   });
 }
 
-export function generateItinerary(tripId: string) {
+export function getGenerationQuota(tripId: string) {
+  return apiFetch<GenerationQuota>(`/trips/${tripId}/generation-quota`);
+}
+
+export function generateItinerary(tripId: string, provider?: ModelProvider) {
   return apiFetch<{ generationId: string }>(`/trips/${tripId}/generate`, {
+    method: "POST",
+    body: provider ? { provider } : {},
+  });
+}
+
+export function completeTrip(tripId: string) {
+  return apiFetch<Trip>(`/trips/${tripId}/complete`, {
     method: "POST",
   });
 }
 
 export function listJournalEntries(tripId: string) {
-  return apiFetch<JournalEntry[]>(`/trips/${tripId}/journal-entries`);
+  return apiFetch<JournalEntry[]>(`/trips/${tripId}/journal`);
+}
+
+export function updateJournalEntry(
+  tripId: string,
+  placeId: string,
+  payload: JournalContributionUpdate,
+) {
+  return apiFetch<JournalEntry>(
+    `/trips/${tripId}/journal/${encodeURIComponent(placeId)}`,
+    {
+      method: "PUT",
+      body: payload,
+    },
+  );
+}
+
+export function saveWhimToJournal(tripId: string, whimId: string) {
+  return apiFetch<JournalEntry>(`/trips/${tripId}/journal/from-whim/${whimId}`, {
+    method: "POST",
+  });
 }
 
 export function getParticipantPreferences(tripId: string, participantId: string) {

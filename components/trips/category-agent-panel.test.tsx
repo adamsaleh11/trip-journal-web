@@ -18,10 +18,19 @@ function mockResult(result: CategoryResult | null, error: string | null = null) 
   vi.mocked(useCategoryResult).mockReturnValue({ result, error, goLive });
 }
 
-function renderPanel(category: "food_drink" | "nightlife" = "food_drink", label = "Food & Drink") {
+function renderPanel(
+  category: "food_drink" | "nightlife" = "food_drink",
+  label = "Food & Drink",
+  isAdmin = true,
+) {
   return render(
     <ToastProvider>
-      <CategoryAgentPanel tripId="trip-1" category={category} label={label} />
+      <CategoryAgentPanel
+        tripId="trip-1"
+        category={category}
+        label={label}
+        isAdmin={isAdmin}
+      />
     </ToastProvider>,
   );
 }
@@ -118,6 +127,16 @@ describe("CategoryAgentPanel", () => {
     expect(generateCategory).toHaveBeenCalledTimes(1);
     expect(generateCategory).toHaveBeenCalledWith("trip-1", "nightlife");
     await waitFor(() => expect(goLive).toHaveBeenCalled());
+  });
+
+  it("locks the run button for non-admins", async () => {
+    mockResult(null);
+    renderPanel("food_drink", "Food & Drink", false);
+
+    const button = screen.getByRole("button", { name: /Run agent/ });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(generateCategory).not.toHaveBeenCalled();
   });
 
   it("treats a 409 as already-running, not an error", async () => {

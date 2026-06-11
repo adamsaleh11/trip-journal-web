@@ -10,8 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CATEGORY_LABELS, type Preflight } from "./generation-preflight";
-import type { PreferenceCategory } from "@/lib/api/types";
+import type { ModelProvider, PreferenceCategory } from "@/lib/api/types";
 
 type GenerationPreflightDialogProps = {
   open: boolean;
@@ -19,6 +20,9 @@ type GenerationPreflightDialogProps = {
   preflight: Preflight;
   onConfirm: () => void;
   isSubmitting?: boolean;
+  isAdmin?: boolean;
+  provider?: ModelProvider;
+  onProviderChange?: (provider: ModelProvider) => void;
 };
 
 export function GenerationPreflightDialog({
@@ -27,6 +31,9 @@ export function GenerationPreflightDialog({
   preflight,
   onConfirm,
   isSubmitting = false,
+  isAdmin = false,
+  provider = "groq",
+  onProviderChange,
 }: GenerationPreflightDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,6 +115,26 @@ export function GenerationPreflightDialog({
               </ul>
             )}
           </section>
+          {isAdmin && onProviderChange && (
+            <section>
+              <h3 className="mb-2 text-sm font-semibold">Itinerary model</h3>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Category research always runs on Groq. As the trip admin you can
+                pick which provider composes the final itinerary.
+              </p>
+              <ToggleGroup
+                type="single"
+                value={provider}
+                onValueChange={(value) => {
+                  if (value) onProviderChange(value as ModelProvider);
+                }}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="groq">Groq (default)</ToggleGroupItem>
+                <ToggleGroupItem value="gemini">Gemini</ToggleGroupItem>
+              </ToggleGroup>
+            </section>
+          )}
         </div>
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

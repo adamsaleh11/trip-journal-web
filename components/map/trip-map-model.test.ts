@@ -109,7 +109,7 @@ describe("trip map model", () => {
             freeText: "Best gelato and late dinners.",
             dietaryRestrictions: ["vegetarian"],
             cuisineInterests: ["seafood", "pastries"],
-            mealBudget: "$$",
+            mealBudget: { amount: 75, currency: "USD" },
             drinkInterests: ["coffee"],
             sportsBarInterest: false,
           },
@@ -125,7 +125,7 @@ describe("trip map model", () => {
       {
         participantId: "p1",
         displayName: "Sarah",
-        chips: ["Vegetarian", "Seafood", "Pastries", "$$", "Coffee"],
+        chips: ["Vegetarian", "Seafood", "Pastries", "~$75", "Coffee"],
         quote: "Best gelato and late dinners.",
       },
       {

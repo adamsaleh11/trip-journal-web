@@ -12,6 +12,7 @@ import {
 } from "react";
 import {
   AlertCircle,
+  BookOpenCheck,
   Clock3,
   Dice5,
   History,
@@ -24,7 +25,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { createWhim } from "@/lib/api/whims";
-import type { WhimCreated, WhimLocation, WhimSuggestion } from "@/lib/api/types";
+import { saveWhimToJournal } from "@/lib/api/trips";
+import type { WhimCreated, WhimLocation } from "@/lib/api/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +116,9 @@ function RightNowDialog({
   const [activeSuggestion, setActiveSuggestion] = useState<SuggestionRecord | null>(null);
   const [history, setHistory] = useState<SuggestionRecord[]>([]);
   const [seenPlaceIds, setSeenPlaceIds] = useState<string[]>([]);
+  const [savedWhimIds, setSavedWhimIds] = useState<string[]>([]);
+  const [savingWhimId, setSavingWhimId] = useState<string | null>(null);
+  const [saveJournalError, setSaveJournalError] = useState<string | null>(null);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   useEffect(() => {
@@ -125,6 +130,9 @@ function RightNowDialog({
     setActiveSuggestion(null);
     setHistory([]);
     setSeenPlaceIds([]);
+    setSavedWhimIds([]);
+    setSavingWhimId(null);
+    setSaveJournalError(null);
     const rememberedCity = window.localStorage.getItem(rememberedCityKey);
     const initialCity = rememberedCity ?? launchOptions.tripDestinationText ?? "";
     setCity(initialCity);
@@ -190,6 +198,7 @@ function RightNowDialog({
         setHistory((current) => [activeSuggestion, ...current]);
       }
       setActiveSuggestion(nextSuggestion);
+      setSaveJournalError(null);
       setSeenPlaceIds((current) =>
         [...current, response.suggestion.placeId].slice(0, excludeCap),
       );
@@ -222,6 +231,37 @@ function RightNowDialog({
     }
     setActiveSuggestion(suggestion);
     setError(null);
+    setSaveJournalError(null);
+  }
+
+  async function handleSaveToJournal(suggestion: SuggestionRecord) {
+    if (!launchOptions.tripId || savingWhimId) return;
+
+    setSavingWhimId(suggestion.whimId);
+    setSaveJournalError(null);
+    try {
+      await saveWhimToJournal(launchOptions.tripId, suggestion.whimId);
+      setSavedWhimIds((current) =>
+        current.includes(suggestion.whimId) ? current : [...current, suggestion.whimId],
+      );
+      window.dispatchEvent(
+        new CustomEvent("trip-journal:journal-updated", {
+          detail: { tripId: launchOptions.tripId },
+        }),
+      );
+    } catch (saveError) {
+      if (isApiErrorLike(saveError) && saveError.status === 403) {
+        setSaveJournalError("You no longer have access to this trip.");
+      } else {
+        setSaveJournalError(
+          saveError instanceof Error
+            ? saveError.message
+            : "Could not save this whim to the journal.",
+        );
+      }
+    } finally {
+      setSavingWhimId(null);
+    }
   }
 
   return (
@@ -283,9 +323,19 @@ function RightNowDialog({
 
         {activeSuggestion ? (
           <SuggestionCard
-            suggestion={activeSuggestion.suggestion}
+            suggestionRecord={activeSuggestion}
             onReroll={() => void submitWhim({ reroll: true })}
             submitting={submitting}
+            tripScoped={Boolean(launchOptions.tripId)}
+            saveState={
+              savedWhimIds.includes(activeSuggestion.whimId)
+                ? "saved"
+                : savingWhimId === activeSuggestion.whimId
+                  ? "saving"
+                  : "idle"
+            }
+            saveError={saveJournalError}
+            onSaveToJournal={() => void handleSaveToJournal(activeSuggestion)}
           />
         ) : null}
 
@@ -298,14 +348,23 @@ function RightNowDialog({
 }
 
 function SuggestionCard({
-  suggestion,
+  suggestionRecord,
   onReroll,
   submitting,
+  tripScoped,
+  saveState,
+  saveError,
+  onSaveToJournal,
 }: {
-  suggestion: WhimSuggestion;
+  suggestionRecord: SuggestionRecord;
   onReroll: () => void;
   submitting: boolean;
+  tripScoped: boolean;
+  saveState: "idle" | "saving" | "saved";
+  saveError: string | null;
+  onSaveToJournal: () => void;
 }) {
+  const suggestion = suggestionRecord.suggestion;
   return (
     <section className="rounded-lg border border-primary/25 bg-background/55 p-4 shadow-xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -339,6 +398,8 @@ function SuggestionCard({
         </blockquote>
       ) : null}
 
+      {saveError ? <p className="mt-3 text-sm text-destructive">{saveError}</p> : null}
+
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <Button type="button" variant="secondary" onClick={onReroll} disabled={submitting}>
           <RotateCw className="h-4 w-4" aria-hidden="true" />
@@ -350,6 +411,22 @@ function SuggestionCard({
             Take me there
           </a>
         </Button>
+        {tripScoped ? (
+          <Button
+            type="button"
+            variant={saveState === "saved" ? "secondary" : "outline"}
+            onClick={onSaveToJournal}
+            disabled={saveState !== "idle"}
+            className="sm:col-span-2"
+          >
+            {saveState === "saving" ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <BookOpenCheck className="h-4 w-4" aria-hidden="true" />
+            )}
+            {saveState === "saved" ? "Saved to journal" : "Save to journal"}
+          </Button>
+        ) : null}
       </div>
     </section>
   );

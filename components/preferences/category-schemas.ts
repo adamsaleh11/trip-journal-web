@@ -1,6 +1,26 @@
 import { z } from "zod";
 
-export const budgetSchema = z.enum(["$", "$$", "$$$"]);
+export const BUDGET_MAX = 500;
+
+export const budgetSchema = z.object({
+  amount: z.number().int().min(0).max(BUDGET_MAX),
+  currency: z.enum(["USD", "CAD"]),
+});
+
+export type BudgetValue = z.infer<typeof budgetSchema>;
+
+// Older documents stored "$" / "$$" / "$$$"; map them onto the slider scale
+// so saved preferences still hydrate the form.
+const LEGACY_BUDGET_AMOUNTS: Record<string, number> = { $: 30, $$: 75, $$$: 150 };
+
+export function normalizeBudget(value: unknown): BudgetValue | null {
+  if (typeof value === "string") {
+    const amount = LEGACY_BUDGET_AMOUNTS[value];
+    return amount === undefined ? null : { amount, currency: "USD" };
+  }
+  const parsed = budgetSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
+}
 
 export const basePreferenceSchema = z.object({
   schemaVersion: z.literal(1),

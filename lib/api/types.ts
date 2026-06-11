@@ -152,7 +152,21 @@ export type WhimCreated = {
   suggestion: WhimSuggestion;
 };
 
-export type Budget = "$" | "$$" | "$$$";
+export type BudgetCurrency = "USD" | "CAD";
+
+export type Budget = {
+  amount: number;
+  currency: BudgetCurrency;
+};
+
+export type ModelProvider = "groq" | "gemini";
+
+export type GenerationQuota = {
+  cap: number;
+  usedToday: number;
+  /** null means the cap is disabled (unlimited). */
+  remaining: number | null;
+};
 
 export type BasePreferenceCategory = {
   schemaVersion: 1;
@@ -268,13 +282,38 @@ export type ManualPlanUpdate = Partial<ManualPlanCreate>;
 
 export type JournalEntry = {
   id: string;
-  tripId?: string;
-  stopId?: string | null;
-  placeId?: string | null;
+  placeId: string;
+  name: string;
+  category: PreferenceCategory;
+  address: string;
+  lat?: number | null;
+  lng?: number | null;
+  source: "participant_preference" | "ai_suggestion" | "manual_plan" | "whim";
+  manualPlanId?: string | null;
+  myEntry?: JournalContribution | null;
+};
+
+export type JournalContribution = {
   rating?: number | null;
-  note?: string | null;
-  shared?: boolean;
-  createdAt?: string;
+  note: string;
+  shareAnonymously: boolean;
+  sharedOpaqueId?: string | null;
+  shareError?: string | null;
+  updatedAt: string;
+};
+
+export type JournalContributionUpdate = {
+  rating?: number | null;
+  note: string;
+  shareAnonymously: boolean;
+};
+
+export type SharedTip = {
+  opaqueId: string;
+  placeId: string;
+  tripName: string;
+  venueName: string;
+  category: PreferenceCategory;
 };
 
 export type CategoryResult = {

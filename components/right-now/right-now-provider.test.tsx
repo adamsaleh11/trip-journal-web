@@ -4,13 +4,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RightNowProvider, useRightNow } from "@/components/right-now/right-now-provider";
 import { RightNowTripCard } from "@/components/right-now/right-now-trip-card";
 import { createWhim } from "@/lib/api/whims";
+import { saveWhimToJournal } from "@/lib/api/trips";
 import type { WhimCreated } from "@/lib/api/types";
 
 vi.mock("@/lib/api/whims", () => ({
   createWhim: vi.fn(),
 }));
+vi.mock("@/lib/api/trips", () => ({
+  saveWhimToJournal: vi.fn(),
+}));
 
 const mockedCreateWhim = vi.mocked(createWhim);
+const mockedSaveWhimToJournal = vi.mocked(saveWhimToJournal);
 
 function TestLauncher() {
   const { openRightNow } = useRightNow();
@@ -150,6 +155,45 @@ describe("RightNowProvider", () => {
       tripId: "trip-1",
     });
     expect(await screen.findByText("Ask for the upstairs table if it is free.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save to journal" })).toBeInTheDocument();
+  });
+
+  it("saves trip-context whims to the journal and disables repeat saves", async () => {
+    mockGeolocationSuccess();
+    mockedCreateWhim.mockResolvedValueOnce(suggestion({ placeId: "places/gelato" }));
+    mockedSaveWhimToJournal.mockResolvedValueOnce({
+      id: "places/gelato",
+      placeId: "places/gelato",
+      name: "Moonlight Gelato",
+      category: "food_drink",
+      address: "12 King St",
+      source: "whim",
+      myEntry: null,
+    });
+
+    renderRightNow(<RightNowTripCard tripId="trip-1" destinationText="Lisbon" />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Right Now" }));
+    await user.click(screen.getByRole("button", { name: "Roll" }));
+    await user.click(await screen.findByRole("button", { name: "Save to journal" }));
+
+    expect(mockedSaveWhimToJournal).toHaveBeenCalledWith("trip-1", "whim-places/gelato");
+    expect(await screen.findByRole("button", { name: "Saved to journal" })).toBeDisabled();
+  });
+
+  it("does not show Save to journal for global whims", async () => {
+    mockGeolocationSuccess();
+    mockedCreateWhim.mockResolvedValueOnce(suggestion());
+
+    renderRightNow();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Right Now" }));
+    await user.click(screen.getByRole("button", { name: "Roll" }));
+
+    expect(await screen.findByText("Moonlight Gelato")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save to journal" })).not.toBeInTheDocument();
   });
 
   it("shows a recoverable no-results state", async () => {

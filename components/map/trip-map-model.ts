@@ -1,4 +1,5 @@
 import type {
+  Budget,
   GroupPreferencesEntry,
   MemberPreferences,
   Participant,
@@ -187,6 +188,8 @@ function collectPreferenceChips(preferences: MemberPreferences) {
         chips.push(labelize(value));
       } else if (typeof value === "boolean" && value) {
         chips.push(labelize(booleanPreferenceLabel(category)));
+      } else if (isBudget(value)) {
+        chips.push(`~${value.currency === "CAD" ? "C$" : "$"}${value.amount}`);
       }
     }
   }
@@ -198,6 +201,15 @@ function booleanPreferenceLabel(category: PreferenceCategory) {
   if (category === "food_drink") return "sports bar";
   if (category === "outdoors_scenic") return "photo spots";
   return category;
+}
+
+function isBudget(value: unknown): value is Budget {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "amount" in value &&
+    "currency" in value
+  );
 }
 
 function labelize(value: string) {

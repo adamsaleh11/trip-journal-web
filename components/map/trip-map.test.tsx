@@ -141,7 +141,7 @@ describe("TripMap", () => {
             freeText: "Best gelato.",
             dietaryRestrictions: ["vegetarian"],
             cuisineInterests: ["pastries"],
-            mealBudget: "$$",
+            mealBudget: { amount: 75, currency: "USD" },
             drinkInterests: ["coffee"],
             sportsBarInterest: false,
           },

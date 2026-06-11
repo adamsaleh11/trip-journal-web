@@ -66,7 +66,7 @@ const groupPrefs: GroupPreferencesEntry[] = [
         freeText: "steakhouse, local fruits",
         dietaryRestrictions: ["vegetarian"],
         cuisineInterests: ["Portuguese"],
-        mealBudget: "$$",
+        mealBudget: { amount: 75, currency: "USD" },
         drinkInterests: [],
         sportsBarInterest: false,
       },
@@ -110,7 +110,7 @@ describe("PreferencesSection saved-preference visibility", () => {
     expect(await screen.findByText("Adam's Preferences")).toBeInTheDocument();
     expect(screen.getByText("Vegetarian")).toBeInTheDocument();
     expect(screen.getByText("Portuguese")).toBeInTheDocument();
-    expect(screen.getByText("Meals $$")).toBeInTheDocument();
+    expect(screen.getByText("Meals ~$75 USD")).toBeInTheDocument();
     expect(screen.getByText("steakhouse")).toBeInTheDocument();
     expect(screen.getByText("local fruits")).toBeInTheDocument();
     expect(screen.queryByText("steakhouse, local fruits")).not.toBeInTheDocument();

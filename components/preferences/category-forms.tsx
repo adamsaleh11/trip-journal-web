@@ -13,6 +13,9 @@ import {
   nightlifeSchema,
   cultureLocalSchema,
   logisticsSchema,
+  normalizeBudget,
+  BUDGET_MAX,
+  type BudgetValue,
   FoodDrinkFormValues,
   OutdoorsScenicFormValues,
   NightlifeFormValues,
@@ -102,6 +105,60 @@ function SingleSelect({
   );
 }
 
+function BudgetSlider({
+  value,
+  onChange,
+  readOnly,
+}: {
+  value: BudgetValue | null;
+  onChange: (val: BudgetValue) => void;
+  readOnly?: boolean;
+}) {
+  const amount = value?.amount ?? 0;
+  const currency = value?.currency ?? "USD";
+  const symbol = currency === "CAD" ? "C$" : "$";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm tabular-nums text-muted-foreground">
+          {amount === 0 ? "Not set" : `~${symbol}${amount} ${currency} on average`}
+        </span>
+        <ToggleGroup
+          type="single"
+          value={currency}
+          onValueChange={(val) => {
+            if (val) onChange({ amount, currency: val as BudgetValue["currency"] });
+          }}
+          disabled={readOnly}
+          className="justify-end"
+        >
+          <ToggleGroupItem value="USD">USD</ToggleGroupItem>
+          <ToggleGroupItem value="CAD">CAD</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={BUDGET_MAX}
+        step={5}
+        value={amount}
+        onChange={(e) => onChange({ amount: Number(e.target.value), currency })}
+        disabled={readOnly}
+        className="w-full accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+        aria-label="Average budget"
+      />
+      <div className="flex justify-between text-xs text-muted-foreground">
+        <span>{symbol}0</span>
+        <span>
+          {symbol}
+          {BUDGET_MAX}+
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ----------------------------------------------------------------------
 // 1. Food & Drink Form
 // ----------------------------------------------------------------------
@@ -121,15 +178,17 @@ export function FoodDrinkForm({
 }) {
   const form = useForm<FoodDrinkFormValues>({
     resolver: zodResolver(foodDrinkSchema),
-    defaultValues: defaultValues || {
-      schemaVersion: 1,
-      freeText: "",
-      dietaryRestrictions: [],
-      cuisineInterests: [],
-      mealBudget: null,
-      drinkInterests: [],
-      sportsBarInterest: false,
-    },
+    defaultValues: defaultValues
+      ? { ...defaultValues, mealBudget: normalizeBudget(defaultValues.mealBudget) }
+      : {
+          schemaVersion: 1,
+          freeText: "",
+          dietaryRestrictions: [],
+          cuisineInterests: [],
+          mealBudget: null,
+          drinkInterests: [],
+          sportsBarInterest: false,
+        },
   });
 
   const onSubmit = async (data: FoodDrinkFormValues) => {
@@ -208,20 +267,17 @@ export function FoodDrinkForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">Meal Budget</label>
+          <label className="text-sm font-medium mb-2 block">
+            Average Meal Budget
+          </label>
           <Controller
             control={form.control}
             name="mealBudget"
             render={({ field }) => (
-              <SingleSelect
+              <BudgetSlider
                 readOnly={readOnly}
                 value={field.value}
                 onChange={field.onChange}
-                options={[
-                  { label: "$ (Budget)", value: "$" },
-                  { label: "$$ (Mid-range)", value: "$$" },
-                  { label: "$$$ (Splurge)", value: "$$$" },
-                ]}
               />
             )}
           />
@@ -404,13 +460,15 @@ export function NightlifeForm({
 }) {
   const form = useForm<NightlifeFormValues>({
     resolver: zodResolver(nightlifeSchema),
-    defaultValues: defaultValues || {
-      schemaVersion: 1,
-      freeText: "",
-      vibe: [],
-      frequency: null,
-      budget: null,
-    },
+    defaultValues: defaultValues
+      ? { ...defaultValues, budget: normalizeBudget(defaultValues.budget) }
+      : {
+          schemaVersion: 1,
+          freeText: "",
+          vibe: [],
+          frequency: null,
+          budget: null,
+        },
   });
 
   const onSubmit = async (data: NightlifeFormValues) => {
@@ -484,20 +542,17 @@ export function NightlifeForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">Budget</label>
+          <label className="text-sm font-medium mb-2 block">
+            Average Night-Out Budget
+          </label>
           <Controller
             control={form.control}
             name="budget"
             render={({ field }) => (
-              <SingleSelect
+              <BudgetSlider
                 readOnly={readOnly}
                 value={field.value}
                 onChange={field.onChange}
-                options={[
-                  { label: "$", value: "$" },
-                  { label: "$$", value: "$$" },
-                  { label: "$$$", value: "$$$" },
-                ]}
               />
             )}
           />
@@ -649,15 +704,17 @@ export function LogisticsForm({
 }) {
   const form = useForm<LogisticsFormValues>({
     resolver: zodResolver(logisticsSchema),
-    defaultValues: defaultValues || {
-      schemaVersion: 1,
-      freeText: "",
-      pace: null,
-      wakeTime: null,
-      transport: [],
-      dailyBudget: null,
-      mobilityNotes: "",
-    },
+    defaultValues: defaultValues
+      ? { ...defaultValues, dailyBudget: normalizeBudget(defaultValues.dailyBudget) }
+      : {
+          schemaVersion: 1,
+          freeText: "",
+          pace: null,
+          wakeTime: null,
+          transport: [],
+          dailyBudget: null,
+          mobilityNotes: "",
+        },
   });
 
   const onSubmit = async (data: LogisticsFormValues) => {
@@ -749,20 +806,17 @@ export function LogisticsForm({
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">Daily Budget</label>
+          <label className="text-sm font-medium mb-2 block">
+            Average Daily Budget
+          </label>
           <Controller
             control={form.control}
             name="dailyBudget"
             render={({ field }) => (
-              <SingleSelect
+              <BudgetSlider
                 readOnly={readOnly}
                 value={field.value}
                 onChange={field.onChange}
-                options={[
-                  { label: "$", value: "$" },
-                  { label: "$$", value: "$$" },
-                  { label: "$$$", value: "$$$" },
-                ]}
               />
             )}
           />

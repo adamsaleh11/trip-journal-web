@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, Clock, Play, RefreshCw, Wand2 } from "lucide-react";
+import { AlertCircle, Clock, Lock, Play, RefreshCw, Wand2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { CategoryResult, PreferenceCategory } from "@/lib/api/types";
@@ -9,14 +9,21 @@ import { generateCategory } from "@/lib/api/trips";
 import { useToast } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api/client";
 import { useCategoryResult } from "./use-category-result";
+import { AdminLockTooltip } from "./admin-lock-tooltip";
 
 type CategoryAgentPanelProps = {
   tripId: string;
   category: PreferenceCategory;
   label: string;
+  isAdmin?: boolean;
 };
 
-export function CategoryAgentPanel({ tripId, category, label }: CategoryAgentPanelProps) {
+export function CategoryAgentPanel({
+  tripId,
+  category,
+  label,
+  isAdmin = false,
+}: CategoryAgentPanelProps) {
   const { result, error: listenError, goLive } = useCategoryResult(tripId, category);
   const [isStarting, setIsStarting] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
@@ -58,14 +65,23 @@ export function CategoryAgentPanel({ tripId, category, label }: CategoryAgentPan
             </p>
           )}
         </div>
-        <Button size="sm" variant="outline" disabled={isRunning} onClick={handleRunAgent}>
-          {isRunning ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-          )}
-          {isRunning ? "Running…" : hasRun ? "Re-run agent" : "Run agent"}
-        </Button>
+        <AdminLockTooltip locked={!isAdmin}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isRunning || !isAdmin}
+            onClick={handleRunAgent}
+          >
+            {!isAdmin ? (
+              <Lock className="mr-2 h-4 w-4" aria-hidden="true" />
+            ) : isRunning ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+            )}
+            {isRunning ? "Running…" : hasRun ? "Re-run agent" : "Run agent"}
+          </Button>
+        </AdminLockTooltip>
       </div>
 
       {error && (

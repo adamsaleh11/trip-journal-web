@@ -9,26 +9,39 @@ import {
   MapPin,
   RotateCw,
   ShieldAlert,
+  CheckCircle2,
 } from "lucide-react";
 import { TripTravelersSection } from "@/components/trips/trip-travelers-section";
 import { ManualPlansSection } from "@/components/trips/manual-plans-section";
 import { CategoryPanelsSection } from "@/components/trips/category-panels-section";
 import { GenerationSection } from "@/components/trips/generation-section";
+import { JournalSection } from "@/components/trips/journal-section";
 import { RightNowTripCard } from "@/components/right-now/right-now-trip-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
+  completeTrip,
   getPreferenceStatus,
   getTrip,
+  listJournalEntries,
   listMembers,
   listParticipants,
   listManualPlans,
 } from "@/lib/api/trips";
+import { useToast } from "@/components/ui/toast";
 import { ApiError } from "@/lib/api/client";
 import type {
   CompletionEntry,
+  JournalEntry,
   Member,
   Participant,
   Trip,
@@ -47,6 +60,8 @@ type DetailState =
       participants: Participant[];
       completions: CompletionEntry[];
       manualPlans: ManualPlan[];
+      journalEntries: JournalEntry[];
+      journalError: string | null;
     };
 
 const statusLabel: Record<Trip["status"], string> = {
@@ -58,7 +73,10 @@ const statusLabel: Record<Trip["status"], string> = {
 export default function TripDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
+  const toast = useToast();
   const [state, setState] = useState<DetailState>({ status: "loading" });
+  const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false);
+  const [completingTrip, setCompletingTrip] = useState(false);
 
   const loadTrip = useCallback(async () => {
     setState({ status: "loading" });
@@ -73,6 +91,18 @@ export default function TripDetailPage() {
         getPreferenceStatus(params.id),
         listManualPlans(params.id),
       ]);
+      let journalEntries: JournalEntry[] = [];
+      let journalError: string | null = null;
+      if (trip.status === "completed") {
+        try {
+          journalEntries = await listJournalEntries(params.id);
+        } catch (journalLoadError) {
+          journalError =
+            journalLoadError instanceof Error
+              ? journalLoadError.message
+              : "Unable to load journal.";
+        }
+      }
       if (acceptedParticipantId) {
         window.sessionStorage.removeItem(acceptedParticipantStorageKey(params.id));
         const [refetchedParticipants, refetchedCompletions] = await Promise.all([
@@ -86,10 +116,21 @@ export default function TripDetailPage() {
           participants: refetchedParticipants,
           completions: refetchedCompletions,
           manualPlans,
+          journalEntries,
+          journalError,
         });
         return;
       }
-      setState({ status: "ready", trip, members, participants, completions, manualPlans });
+      setState({
+        status: "ready",
+        trip,
+        members,
+        participants,
+        completions,
+        manualPlans,
+        journalEntries,
+        journalError,
+      });
     } catch (error) {
       if (error instanceof ApiError && error.status === 403) {
         setState({ status: "forbidden" });
@@ -105,6 +146,18 @@ export default function TripDetailPage() {
   useEffect(() => {
     void loadTrip();
   }, [loadTrip]);
+
+  useEffect(() => {
+    function handleWhimSaved(event: Event) {
+      const detail = (event as CustomEvent<{ tripId?: string }>).detail;
+      if (detail?.tripId === params.id) {
+        void loadTrip();
+      }
+    }
+
+    window.addEventListener("trip-journal:journal-updated", handleWhimSaved);
+    return () => window.removeEventListener("trip-journal:journal-updated", handleWhimSaved);
+  }, [loadTrip, params.id]);
 
   if (state.status === "loading") {
     return <TripDetailSkeleton />;
@@ -145,12 +198,49 @@ export default function TripDetailPage() {
   const isGenerated =
     state.trip.status === "generated" || state.trip.status === "completed";
 
+  async function handleCompleteTrip() {
+    if (state.status !== "ready") return;
+
+    setCompletingTrip(true);
+    try {
+      await completeTrip(state.trip.id);
+      setCompleteConfirmOpen(false);
+      toast({
+        kind: "success",
+        title: "Trip completed",
+        description: "Journal stops are ready for members.",
+      });
+      await loadTrip();
+    } catch (error) {
+      toast({
+        kind: "error",
+        title: "Trip could not be completed",
+        description: error instanceof Error ? error.message : "Try again.",
+      });
+    } finally {
+      setCompletingTrip(false);
+    }
+  }
+
+  function handleJournalEntrySaved(updatedEntry: JournalEntry) {
+    setState((current) => {
+      if (current.status !== "ready") return current;
+      return {
+        ...current,
+        journalEntries: current.journalEntries.map((entry) =>
+          entry.placeId === updatedEntry.placeId ? updatedEntry : entry,
+        ),
+      };
+    });
+  }
+
   const generationSection = (
     <GenerationSection
       tripId={state.trip.id}
       participants={state.participants}
       completions={state.completions}
       manualPlans={state.manualPlans}
+      isAdmin={isAdmin}
     />
   );
 
@@ -191,7 +281,7 @@ export default function TripDetailPage() {
       )}
 
       {state.trip.status !== "completed" && (
-        <CategoryPanelsSection tripId={state.trip.id} />
+        <CategoryPanelsSection tripId={state.trip.id} isAdmin={isAdmin} />
       )}
     </div>
   );
@@ -223,10 +313,38 @@ export default function TripDetailPage() {
               </p>
             ) : null}
           </div>
+          {isAdmin && state.trip.status === "generated" ? (
+            <Button
+              type="button"
+              className="w-full md:w-auto"
+              onClick={() => setCompleteConfirmOpen(true)}
+            >
+              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+              Complete trip
+            </Button>
+          ) : null}
         </div>
       </section>
 
-      {isGenerated ? (
+      {state.trip.status === "completed" ? (
+        <>
+          <JournalSection
+            tripId={state.trip.id}
+            entries={state.journalEntries}
+            error={state.journalError}
+            onRetry={loadTrip}
+            onEntrySaved={handleJournalEntrySaved}
+            onSharedStateChanged={loadTrip}
+          />
+          {generationSection}
+          <details className="group rounded-lg border border-border bg-card/50 p-4">
+            <summary className="cursor-pointer list-none text-sm font-medium text-muted-foreground">
+              Planning details
+            </summary>
+            <div className="mt-4">{planningTools}</div>
+          </details>
+        </>
+      ) : isGenerated ? (
         <>
           {generationSection}
           <details className="group rounded-lg border border-border bg-card/50 p-4">
@@ -242,6 +360,30 @@ export default function TripDetailPage() {
           {generationSection}
         </>
       )}
+
+      <Dialog open={completeConfirmOpen} onOpenChange={setCompleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete this trip?</DialogTitle>
+            <DialogDescription>
+              This moves it to your journal. Members can rate stops, write private notes, and choose whether to share anonymized tips.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCompleteConfirmOpen(false)}
+              disabled={completingTrip}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleCompleteTrip} disabled={completingTrip}>
+              {completingTrip ? "Completing..." : "Complete trip"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

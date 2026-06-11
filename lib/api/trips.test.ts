@@ -2,12 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, publicApiFetch } from "@/lib/api/client";
 import {
   acceptInvite,
+  completeTrip,
   createInvite,
   createParticipant,
   getTripItinerary,
   listJournalEntries,
   listManualPlans,
   listParticipants,
+  saveWhimToJournal,
+  updateJournalEntry,
   updateParticipant,
 } from "@/lib/api/trips";
 
@@ -125,6 +128,41 @@ describe("trip API participants contract", () => {
 
     expect(mockedApiFetch).toHaveBeenNthCalledWith(1, "/trips/trip-1/itinerary");
     expect(mockedApiFetch).toHaveBeenNthCalledWith(2, "/trips/trip-1/manual-plans");
-    expect(mockedApiFetch).toHaveBeenNthCalledWith(3, "/trips/trip-1/journal-entries");
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(3, "/trips/trip-1/journal");
+  });
+
+  it("calls the journal completion and contribution routes", async () => {
+    mockedApiFetch.mockResolvedValueOnce({ id: "trip-1", status: "completed" });
+    mockedApiFetch.mockResolvedValueOnce({ placeId: "places/cafe-lisboa" });
+    mockedApiFetch.mockResolvedValueOnce({ placeId: "places/gelato", source: "whim" });
+
+    await completeTrip("trip-1");
+    await updateJournalEntry("trip-1", "places/cafe-lisboa", {
+      rating: 5,
+      note: "Worth remembering.",
+      shareAnonymously: true,
+    });
+    await saveWhimToJournal("trip-1", "whim-1");
+
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(1, "/trips/trip-1/complete", {
+      method: "POST",
+    });
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(
+      2,
+      "/trips/trip-1/journal/places%2Fcafe-lisboa",
+      {
+        method: "PUT",
+        body: {
+          rating: 5,
+          note: "Worth remembering.",
+          shareAnonymously: true,
+        },
+      },
+    );
+    expect(mockedApiFetch).toHaveBeenNthCalledWith(
+      3,
+      "/trips/trip-1/journal/from-whim/whim-1",
+      { method: "POST" },
+    );
   });
 });

@@ -9,10 +9,13 @@ import {
   Dice5,
   LogOut,
   MapPinned,
+  ShieldCheck,
   UserCircle,
 } from "lucide-react";
+import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { useRightNow } from "@/components/right-now/right-now-provider";
+import { SharedTipsDialog } from "@/components/shell/shared-tips-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { openRightNow } = useRightNow();
+  const [sharedTipsOpen, setSharedTipsOpen] = useState(false);
 
   async function handleSignOut() {
     await signOut();
@@ -152,6 +156,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setSharedTipsOpen(true)}>
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                Shared tips
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 Sign out
@@ -194,6 +202,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="px-4 py-6 sm:px-6 lg:ml-72 lg:px-8 lg:py-8">
         <div className="mx-auto w-full max-w-6xl">{children}</div>
       </main>
+      <SharedTipsDialog open={sharedTipsOpen} onOpenChange={setSharedTipsOpen} />
     </div>
   );
 }
