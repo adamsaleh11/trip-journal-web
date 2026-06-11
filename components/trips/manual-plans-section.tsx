@@ -320,6 +320,16 @@ function ManualPlanDialog({
               )}
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="address">Place or Address (Optional)</Label>
+              <Input
+                id="address"
+                value={formData.address || ""}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="e.g. Marea, 240 Central Park S, New York"
+                maxLength={240}
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="notes">Notes (Optional)</Label>
               <Textarea
                 id="notes"

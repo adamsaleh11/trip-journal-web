@@ -3,15 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TripTravelersSection } from "@/components/trips/trip-travelers-section";
 import { ToastProvider } from "@/components/ui/toast";
-import { createInvite } from "@/lib/api/trips";
+import { createInvite, removeParticipant } from "@/lib/api/trips";
 import type { Participant } from "@/lib/api/types";
 
 vi.mock("@/lib/api/trips", () => ({
   createInvite: vi.fn(),
   createParticipant: vi.fn(),
+  removeParticipant: vi.fn(),
 }));
 
 const mockedCreateInvite = vi.mocked(createInvite);
+const mockedRemoveParticipant = vi.mocked(removeParticipant);
 
 const participants: Participant[] = [
   {
@@ -91,5 +93,48 @@ describe("TripTravelersSection", () => {
       participantId: "participant-2",
     });
     expect(screen.getByDisplayValue("https://example.test/invite/token")).toBeInTheDocument();
+  });
+
+  it("removes a traveler after confirmation, but never the trip admin", async () => {
+    mockedRemoveParticipant.mockResolvedValueOnce(undefined);
+    const onParticipantsChanged = vi.fn();
+
+    render(
+      <ToastProvider>
+        <TripTravelersSection
+          tripId="trip-1"
+          participants={participants}
+          isAdmin
+          adminUid="uid-sarah"
+          onParticipantsChanged={onParticipantsChanged}
+        />
+      </ToastProvider>,
+    );
+
+    // Sarah claimed the admin uid, so her row has no remove button.
+    expect(screen.queryByRole("button", { name: "Remove Sarah" })).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Remove Mina" }));
+    await user.click(screen.getByRole("button", { name: "Remove traveler" }));
+
+    expect(mockedRemoveParticipant).toHaveBeenCalledWith("trip-1", "participant-2");
+    expect(onParticipantsChanged).toHaveBeenCalled();
+  });
+
+  it("hides remove buttons from non-admins", () => {
+    render(
+      <ToastProvider>
+        <TripTravelersSection
+          tripId="trip-1"
+          participants={participants}
+          isAdmin={false}
+          adminUid="uid-sarah"
+          onParticipantsChanged={() => undefined}
+        />
+      </ToastProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: /^Remove/ })).not.toBeInTheDocument();
   });
 });

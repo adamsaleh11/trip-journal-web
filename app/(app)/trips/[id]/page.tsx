@@ -258,6 +258,7 @@ export default function TripDetailPage() {
           tripId={state.trip.id}
           participants={state.participants}
           isAdmin={isAdmin}
+          adminUid={state.trip.adminUid}
           onParticipantsChanged={loadTrip}
         />
 

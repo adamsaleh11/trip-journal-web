@@ -64,6 +64,12 @@ export function updateParticipant(
   });
 }
 
+export function removeParticipant(tripId: string, participantId: string) {
+  return apiFetch<void>(`/trips/${tripId}/participants/${participantId}`, {
+    method: "DELETE",
+  });
+}
+
 export function getPreferenceStatus(tripId: string) {
   return apiFetch<CompletionEntry[]>(`/trips/${tripId}/preferences/status`);
 }
