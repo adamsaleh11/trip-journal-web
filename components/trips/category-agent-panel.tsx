@@ -108,56 +108,7 @@ export function CategoryAgentPanel({
 
       {expanded && result && result.candidates.length > 0 && (
         <>
-          <ul className="space-y-3">
-            {result.candidates.map((candidate, index) => (
-              <li
-                key={candidate.placeId || `${candidate.name}-${index}`}
-                className="min-w-0 rounded-md bg-muted/50 p-3 text-sm"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{candidate.name}</p>
-                    {candidate.address && (
-                      <p className="truncate text-xs text-muted-foreground">
-                        {candidate.address}
-                      </p>
-                    )}
-                  </div>
-                  {candidate.suggested && (
-                    <Badge
-                      variant="secondary"
-                      className="flex-shrink-0 gap-1 text-[10px] uppercase tracking-wide"
-                    >
-                      <Wand2 className="h-3 w-3" aria-hidden="true" /> AI-suggested
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-                  {candidate.timeOfDayFit && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5">
-                      <Clock className="h-3 w-3" aria-hidden="true" />
-                      {candidate.timeOfDayFit}
-                    </span>
-                  )}
-                  {candidate.priceLevel && (
-                    <span className="rounded-full border border-border px-2 py-0.5">
-                      {candidate.priceLevel}
-                    </span>
-                  )}
-                </div>
-
-                {candidate.whyItFits && (
-                  <p className="mt-2 break-words text-muted-foreground">{candidate.whyItFits}</p>
-                )}
-                {candidate.travelersTip && (
-                  <p className="mt-2 break-words rounded-sm bg-primary/10 px-2 py-1.5 text-xs italic text-primary">
-                    Tip: {candidate.travelersTip}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+          <CandidateSections candidates={result.candidates} />
           <CategoryMetricsSummary result={result} />
         </>
       )}
@@ -168,6 +119,96 @@ export function CategoryAgentPanel({
         </p>
       )}
     </div>
+  );
+}
+
+type Candidate = CategoryResult["candidates"][number];
+
+const MEAL_SECTIONS = [
+  { mealType: "breakfast", label: "Breakfast" },
+  { mealType: "lunch_dinner", label: "Lunch & Dinner" },
+] as const;
+
+function CandidateSections({ candidates }: { candidates: Candidate[] }) {
+  const hasMealTypes = candidates.some((candidate) => candidate.mealType);
+  if (!hasMealTypes) {
+    return <CandidateList candidates={candidates} />;
+  }
+
+  return (
+    <div className="space-y-4">
+      {MEAL_SECTIONS.map(({ mealType, label }) => {
+        const section = candidates.filter((candidate) =>
+          mealType === "breakfast"
+            ? candidate.mealType === "breakfast"
+            : candidate.mealType !== "breakfast",
+        );
+        if (section.length === 0) return null;
+        return (
+          <section key={mealType} role="group" aria-label={label}>
+            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {label}
+            </h4>
+            <CandidateList candidates={section} />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function CandidateList({ candidates }: { candidates: Candidate[] }) {
+  return (
+    <ul className="space-y-3">
+      {candidates.map((candidate, index) => (
+        <li
+          key={candidate.placeId || `${candidate.name}-${index}`}
+          className="min-w-0 rounded-md bg-muted/50 p-3 text-sm"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate font-medium">{candidate.name}</p>
+              {candidate.address && (
+                <p className="truncate text-xs text-muted-foreground">
+                  {candidate.address}
+                </p>
+              )}
+            </div>
+            {candidate.suggested && (
+              <Badge
+                variant="secondary"
+                className="flex-shrink-0 gap-1 text-[10px] uppercase tracking-wide"
+              >
+                <Wand2 className="h-3 w-3" aria-hidden="true" /> AI-suggested
+              </Badge>
+            )}
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+            {candidate.timeOfDayFit && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5">
+                <Clock className="h-3 w-3" aria-hidden="true" />
+                {candidate.timeOfDayFit}
+              </span>
+            )}
+            {candidate.priceLevel && (
+              <span className="rounded-full border border-border px-2 py-0.5">
+                {candidate.priceLevel}
+              </span>
+            )}
+          </div>
+
+          {candidate.whyItFits && (
+            <p className="mt-2 break-words text-muted-foreground">{candidate.whyItFits}</p>
+          )}
+          {candidate.travelersTip && (
+            <p className="mt-2 break-words rounded-sm bg-primary/10 px-2 py-1.5 text-xs italic text-primary">
+              Tip: {candidate.travelersTip}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

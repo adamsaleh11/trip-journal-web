@@ -329,6 +329,7 @@ export type CategoryResult = {
     priceLevel?: string;
     suggested: boolean;
     travelersTip?: string;
+    mealType?: "breakfast" | "lunch_dinner";
   }[];
   sourceParticipantIds: string[];
   metrics: Record<string, unknown>;

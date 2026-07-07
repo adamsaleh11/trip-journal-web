@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { CategoryAgentPanel } from "./category-agent-panel";
@@ -91,6 +91,50 @@ describe("CategoryAgentPanel", () => {
     // Metrics summary
     expect(screen.getByText(/2 picks/)).toBeInTheDocument();
     expect(screen.getByText(/4\.2s/)).toBeInTheDocument();
+  });
+
+  it("groups food candidates into Breakfast and Lunch & Dinner sections by mealType", () => {
+    mockResult({
+      ...completeResult,
+      candidates: [
+        {
+          placeId: "p1",
+          name: "Pastelaria Santo Antonio",
+          address: "R. do Milagre",
+          lat: 0,
+          lng: 0,
+          whyItFits: "Classic pastel de nata breakfast.",
+          suggested: false,
+          mealType: "breakfast",
+        },
+        {
+          placeId: "p2",
+          name: "Time Out Market",
+          address: "Av. 24 de Julho",
+          lat: 0,
+          lng: 0,
+          whyItFits: "Food hall for dinner.",
+          suggested: false,
+          mealType: "lunch_dinner",
+        },
+      ],
+    });
+    renderPanel();
+
+    const breakfast = screen.getByRole("group", { name: "Breakfast" });
+    const lunchDinner = screen.getByRole("group", { name: "Lunch & Dinner" });
+    expect(within(breakfast).getByText("Pastelaria Santo Antonio")).toBeInTheDocument();
+    expect(within(lunchDinner).getByText("Time Out Market")).toBeInTheDocument();
+  });
+
+  it("renders a flat ungrouped list when no candidate has mealType", () => {
+    mockResult(completeResult);
+    renderPanel();
+
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+    expect(screen.queryByText("Breakfast")).not.toBeInTheDocument();
+    expect(screen.getByText("Time Out Market")).toBeInTheDocument();
+    expect(screen.getByText("A Cevicheria")).toBeInTheDocument();
   });
 
   it("shows a stale hint when the result is stale", () => {
